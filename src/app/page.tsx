@@ -661,7 +661,7 @@ function MainDashboard({
             partialResults: true,
             // 💡 팁: 안드로이드에서 말을 쉴 때 너무 빨리 끊기는 게 싫다면
             // 이걸 true로 바꿔서 구글 기본 마이크 팝업을 띄우는 것도 좋은 방법이야!
-            popup: true,
+            popup: false,
           });
         } catch (error) {
           console.error("네이티브 마이크 시작 에러:", error);
