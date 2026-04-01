@@ -75,7 +75,7 @@ function MainDashboard({
     setActiveTab(newStatus);
 
     try {
-      await fetch("/api/tasks", {
+      await fetch("https://project-a7app.vercel.app/api/tasks", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -137,7 +137,7 @@ function MainDashboard({
 
   const fetchUsage = async () => {
     try {
-      const res = await fetch("/api/usage", {
+      const res = await fetch("https://project-a7app.vercel.app/api/usage", {
         headers: { "x-user-name": encodeURIComponent(userName) },
       });
       const data = await res.json();
@@ -165,10 +165,13 @@ function MainDashboard({
     }
 
     try {
-      const res = await fetch("/api/daily/sync", {
-        method: "POST",
-        headers: { "x-user-name": encodeURIComponent(userName) },
-      });
+      const res = await fetch(
+        "https://project-a7app.vercel.app/api/daily/sync",
+        {
+          method: "POST",
+          headers: { "x-user-name": encodeURIComponent(userName) },
+        }
+      );
 
       if (res.ok) {
         // 2차 검문 통과: 서버에서 처리가 완료되면 로컬스토리지에 '오늘(KST)' 도장 쾅
@@ -181,7 +184,7 @@ function MainDashboard({
   };
 
   const fetchTasks = async () => {
-    const res = await fetch("/api/tasks", {
+    const res = await fetch("https://project-a7app.vercel.app/api/tasks", {
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
     const data = await res.json();
@@ -191,7 +194,7 @@ function MainDashboard({
   };
 
   const fetchSchedules = async () => {
-    const res = await fetch("/api/calendar", {
+    const res = await fetch("https://project-a7app.vercel.app/api/calendar", {
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
     const data = await res.json();
@@ -311,7 +314,7 @@ function MainDashboard({
       progress: 0,
       createdAt: new Date().toISOString().split("T")[0],
     };
-    const res = await fetch("/api/tasks", {
+    const res = await fetch("https://project-a7app.vercel.app/api/tasks", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -337,7 +340,7 @@ function MainDashboard({
           : t
       )
     );
-    await fetch("/api/tasks", {
+    await fetch("https://project-a7app.vercel.app/api/tasks", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -358,7 +361,7 @@ function MainDashboard({
       s.id === id ? updatedSchedule : s
     );
     setSchedules(updatedSchedules);
-    await fetch("/api/calendar", {
+    await fetch("https://project-a7app.vercel.app/api/calendar", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -372,10 +375,13 @@ function MainDashboard({
   const handleResetUsage = async () => {
     if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠습니까?")) return;
     try {
-      const res = await fetch("/api/usage/reset", {
-        method: "POST",
-        headers: { "x-user-name": encodeURIComponent(userName) },
-      });
+      const res = await fetch(
+        "https://project-a7app.vercel.app/api/usage/reset",
+        {
+          method: "POST",
+          headers: { "x-user-name": encodeURIComponent(userName) },
+        }
+      );
       if (res.ok) {
         setAiUsageCount(0);
         alert("리셋 완료! 다시 마이크를 사용할 수 있습니다.");
@@ -429,7 +435,7 @@ function MainDashboard({
     });
 
     // DB 업데이트 로직은 기존과 동일
-    await fetch("/api/tasks", {
+    await fetch("https://project-a7app.vercel.app/api/tasks", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -463,14 +469,17 @@ function MainDashboard({
     setIsAiProcessing(true);
 
     try {
-      const res = await fetch("/api/braindump", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-name": encodeURIComponent(userName),
-        },
-        body: JSON.stringify({ text: finalText }),
-      });
+      const res = await fetch(
+        "https://project-a7app.vercel.app/api/braindump",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-name": encodeURIComponent(userName),
+          },
+          body: JSON.stringify({ text: finalText }),
+        }
+      );
 
       if (res.status === 403) {
         alert(
@@ -504,10 +513,13 @@ function MainDashboard({
   };
 
   const deleteTask = async (id: number | string) => {
-    const res = await fetch(`/api/tasks?id=${id}`, {
-      method: "DELETE",
-      headers: { "x-user-name": encodeURIComponent(userName) },
-    });
+    const res = await fetch(
+      `https://project-a7app.vercel.app/api/tasks?id=${id}`,
+      {
+        method: "DELETE",
+        headers: { "x-user-name": encodeURIComponent(userName) },
+      }
+    );
     if (res.ok) setTasks(tasks.filter(t => t.id !== id));
   };
 
@@ -521,7 +533,7 @@ function MainDashboard({
       )
     );
 
-    await fetch("/api/tasks", {
+    await fetch("https://project-a7app.vercel.app/api/tasks", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -547,7 +559,7 @@ function MainDashboard({
     setTasks(_tasks);
     dragItem.current = null;
     dragOverItem.current = null;
-    await fetch("/api/tasks/reorder", {
+    await fetch("https://project-a7app.vercel.app/api/tasks/reorder", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -560,7 +572,7 @@ function MainDashboard({
   const handleSaveSchedule = async (newSchedule: Schedule) => {
     const updatedSchedules = [...schedules, newSchedule];
     setSchedules(updatedSchedules);
-    await fetch("/api/calendar", {
+    await fetch("https://project-a7app.vercel.app/api/calendar", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -573,7 +585,7 @@ function MainDashboard({
   const handleDeleteSchedule = async (id: string) => {
     const updatedSchedules = schedules.filter(s => s.id !== id);
     setSchedules(updatedSchedules);
-    await fetch("/api/calendar", {
+    await fetch("https://project-a7app.vercel.app/api/calendar", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
