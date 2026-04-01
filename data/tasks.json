@@ -1,0 +1,117 @@
+[
+  {
+    "title": "⚡ (AI) Firebase CLI를 사용해 서버 코드를 배포해.",
+    "time": "15 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "00:00",
+    "id": 1773581379467,
+    "createdAt": "2026-03-15"
+  },
+  {
+    "title": "⚡ (AI) 배포 완료 후 Firebase 콘솔에서 서버 URL을 확인하고 접속해봐.",
+    "time": "15 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "00:15",
+    "id": 1773581379468,
+    "createdAt": "2026-03-15"
+  },
+  {
+    "title": "⚡ (AI) 서버 코드 내 Firebase DB 연결 코드와 설정을 다시 확인해봐.",
+    "time": "20 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "00:30",
+    "id": 1773581379469,
+    "createdAt": "2026-03-15"
+  },
+  {
+    "title": "⚡ (AI) 배포된 서버에서 데이터베이스가 정상적으로 연동되는지 간단히 테스트해봐.",
+    "time": "20 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "00:50",
+    "id": 1773581379470,
+    "createdAt": "2026-03-15"
+  },
+  {
+    "title": "⚡ (AI) 친구에게 전달할 서비스/웹사이트 URL과 간단한 사용법을 정리해.",
+    "time": "10 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "01:10",
+    "id": 1773581379471,
+    "createdAt": "2026-03-15"
+  },
+  {
+    "title": "⚡ (AI) 친구에게 URL과 사용법을 공유하고, 피드백을 요청해.",
+    "time": "10 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "01:20",
+    "id": 1773581379472,
+    "createdAt": "2026-03-15"
+  },
+  {
+    "title": "⚡ (AI) Firebase CLI를 사용해 서버 코드를 배포해.",
+    "time": "15 min",
+    "deadline": "2026-03-15 23:49",
+    "progress": 13,
+    "scheduledAt": "00:00",
+    "id": 1773581379467,
+    "createdAt": "2026-03-15",
+    "userName": "영탁",
+    "startedAt": 1773582501896
+  },
+  {
+    "title": "⚡ (AI) 배포 완료 후 Firebase 콘솔에서 서버 URL을 확인하고 접속해봐.",
+    "time": "15 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "00:15",
+    "id": 1773581379468,
+    "createdAt": "2026-03-15",
+    "userName": "영탁"
+  },
+  {
+    "title": "⚡ (AI) 서버 코드 내 Firebase DB 연결 코드와 설정을 다시 확인해봐.",
+    "time": "20 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "00:30",
+    "id": 1773581379469,
+    "createdAt": "2026-03-15",
+    "userName": "영탁"
+  },
+  {
+    "title": "⚡ (AI) 배포된 서버에서 데이터베이스가 정상적으로 연동되는지 간단히 테스트해봐.",
+    "time": "20 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "00:50",
+    "id": 1773581379470,
+    "createdAt": "2026-03-15",
+    "userName": "영탁"
+  },
+  {
+    "title": "⚡ (AI) 친구에게 전달할 서비스/웹사이트 URL과 간단한 사용법을 정리해.",
+    "time": "10 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "01:10",
+    "id": 1773581379471,
+    "createdAt": "2026-03-15",
+    "userName": "영탁"
+  },
+  {
+    "title": "⚡ (AI) 친구에게 URL과 사용법을 공유하고, 피드백을 요청해.",
+    "time": "10 min",
+    "deadline": "D-Day",
+    "progress": 0,
+    "scheduledAt": "01:20",
+    "id": 1773581379472,
+    "createdAt": "2026-03-15",
+    "userName": "영탁"
+  }
+]
