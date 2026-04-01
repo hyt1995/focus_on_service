@@ -18,13 +18,16 @@ import TaskCard from "@/components/TaskCard";
 import AddTaskModal from "@/components/AddTaskModal";
 import { Task, Schedule } from "@/types";
 import DailyView from "@/components/DailyView";
+import { Capacitor } from "@capacitor/core";
+import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("focus_user_name");
+    // 🔥 수술 포인트: 웹뷰 앱에 로컬스토리지가 없어서 null일 경우를 대비해 '?' 추가
+    const storedUser = window.localStorage?.getItem("focus_user_name");
     if (storedUser) setUserName(storedUser);
     setIsInitialized(true);
   }, []);
@@ -36,7 +39,10 @@ export default function FocusApp() {
     <MainDashboard
       userName={userName}
       onLogout={() => {
-        localStorage.removeItem("focus_user_name");
+        if (typeof window !== "undefined") {
+          window.localStorage?.removeItem("focus_user_name");
+        }
+        // localStorage.removeItem("focus_user_name");
         setUserName(null);
       }}
     />
@@ -75,7 +81,7 @@ function MainDashboard({
     setActiveTab(newStatus);
 
     try {
-      await fetch("https://project-a7app.vercel.app/api/tasks", {
+      await fetch("/api/tasks", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -137,7 +143,7 @@ function MainDashboard({
 
   const fetchUsage = async () => {
     try {
-      const res = await fetch("https://project-a7app.vercel.app/api/usage", {
+      const res = await fetch("/api/usage", {
         headers: { "x-user-name": encodeURIComponent(userName) },
       });
       const data = await res.json();
@@ -149,11 +155,17 @@ function MainDashboard({
   };
 
   // --- [page.tsx 내부의 syncDailyTasks 함수를 핀셋 교체] ---
+  // --- [page.tsx 내부의 syncDailyTasks 함수를 핀셋 교체] ---
   const syncDailyTasks = async () => {
+    let lastSyncDate = null;
     const STORAGE_KEY = `last_daily_sync_${userName}`;
-    const lastSyncDate = localStorage.getItem(STORAGE_KEY);
 
-    // 🔥 핵심 수술: 브라우저에서도 무조건 한국 시간(KST) 기준으로 '오늘 날짜'를 구한다.
+    // 'window'가 존재할 때만 실행
+    if (typeof window !== "undefined") {
+      // 🔥 수술 포인트: '?' 추가
+      lastSyncDate = window.localStorage?.getItem(STORAGE_KEY);
+    }
+
     const now = new Date();
     const kstTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
     const today = kstTime.toISOString().split("T")[0];
@@ -165,17 +177,16 @@ function MainDashboard({
     }
 
     try {
-      const res = await fetch(
-        "https://project-a7app.vercel.app/api/daily/sync",
-        {
-          method: "POST",
-          headers: { "x-user-name": encodeURIComponent(userName) },
-        }
-      );
+      const res = await fetch("/api/daily/sync", {
+        method: "POST",
+        headers: { "x-user-name": encodeURIComponent(userName) },
+      });
 
       if (res.ok) {
-        // 2차 검문 통과: 서버에서 처리가 완료되면 로컬스토리지에 '오늘(KST)' 도장 쾅
-        localStorage.setItem(STORAGE_KEY, today);
+        // 2차 검문 통과: 서버에서 처리가 완료되면 로컬스토리지에 저장 (여기에도 방어 코드 추가)
+        if (typeof window !== "undefined") {
+          window.localStorage?.setItem(STORAGE_KEY, today);
+        }
         console.log("✅ [Sync] 오늘치 데일리 루틴 동기화 완료.");
       }
     } catch (err) {
@@ -184,7 +195,7 @@ function MainDashboard({
   };
 
   const fetchTasks = async () => {
-    const res = await fetch("https://project-a7app.vercel.app/api/tasks", {
+    const res = await fetch("/api/tasks", {
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
     const data = await res.json();
@@ -194,23 +205,44 @@ function MainDashboard({
   };
 
   const fetchSchedules = async () => {
-    const res = await fetch("https://project-a7app.vercel.app/api/calendar", {
+    const res = await fetch("/api/calendar", {
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
     const data = await res.json();
     if (Array.isArray(data)) setSchedules(data);
   };
 
-  // 🎙️ 복구된 음성 인식 초기화 로직
-  // 🎯 [교체할 코드]
-  const initSpeechRecognition = () => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
+  // 🎙️ 복구된 음성 인식 초기화 로직 (PC + 모바일 앱 완벽 호환)
+  // 🎯 [교체 완료]
+  const initSpeechRecognition = async () => {
+    // 📱 [1] 모바일 앱(네이티브)으로 접속했을 때 세팅
+    if (Capacitor.isNativePlatform()) {
+      try {
+        // 만약 컴포넌트가 재렌더링되면서 리스너가 여러 개 붙는 걸 방지 (메아리 차단)
+        await SpeechRecognition.removeAllListeners();
+
+        // 네이티브 마이크가 듣는 대로 실시간 텍스트 받아오기
+        SpeechRecognition.addListener("partialResults", (data: any) => {
+          if (data.matches && data.matches.length > 0) {
+            const text = data.matches[0];
+            // 네이티브 엔진은 알아서 누적된 문장을 깔끔하게 던져주므로 금고 로직 불필요
+            setRecognizedText(text);
+            recognizedTextRef.current = text;
+          }
+        });
+      } catch (error) {
+        console.error("네이티브 마이크 초기화 에러:", error);
+      }
+    }
+
+    // 💻 [2] PC 웹 브라우저로 접속했을 때 세팅 (파트너의 기존 치밀한 로직 100% 유지)
+    else if (typeof window !== "undefined") {
+      const WebSpeechAPI =
         (window as any).SpeechRecognition ||
         (window as any).webkitSpeechRecognition;
 
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
+      if (WebSpeechAPI) {
+        recognitionRef.current = new WebSpeechAPI();
         recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = "ko-KR";
@@ -218,53 +250,43 @@ function MainDashboard({
         // 🔥 수술 포인트 1: 글자 반복(메아리) 원천 차단
         recognitionRef.current.onresult = (event: any) => {
           let interimTranscript = "";
-
-          // i = 0 이 아니라 event.resultIndex 부터 시작! (새로 들어온 데이터만 취급)
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
-
-            // 브라우저가 "이 단어는 이제 안 바뀐다"고 확정(isFinal) 지으면 금고에 박아넣음
             if (event.results[i].isFinal) {
               finalTranscriptRef.current += transcript + " ";
             } else {
-              // 아직 웅얼거리고 있는(수정될 수 있는) 텍스트는 임시 변수에만 저장
               interimTranscript += transcript;
             }
           }
-
-          // 화면 및 서버 전송용 상태 업데이트 = 금고 텍스트 + 임시 텍스트
           const fullText = finalTranscriptRef.current + interimTranscript;
           setRecognizedText(fullText);
           recognizedTextRef.current = fullText;
         };
 
-        // 🔥 수술 포인트 2: 모바일 OS의 강제 종료 막는 '좀비 부활' 로직
+        // 🔥 수술 포인트 2: 모바일 웹(사파리/크롬)의 강제 종료 막는 좀비 부활 로직
         recognitionRef.current.onend = () => {
-          // 우리가 정지 버튼(isBrainDumpingRef = false)을 안 눌렀는데 꺼졌다? -> OS가 죽인 거임. 강제 재시작.
           if (isBrainDumpingRef.current) {
             console.log(
-              "OS 배터리 절약 정책으로 마이크 강제 종료됨. 즉시 부활시킵니다."
+              "웹: OS 배터리 절약 정책으로 마이크 종료됨. 부활시킵니다."
             );
             try {
               recognitionRef.current.start();
-            } catch (e) {
-              // 이미 시작 중인 경우 발생하는 에러 무시
-            }
+            } catch (e) {}
           }
         };
 
         recognitionRef.current.onerror = (event: any) => {
-          console.error("음성 인식 에러:", event.error);
+          console.error("웹 음성 인식 에러:", event.error);
           if (event.error === "not-allowed") {
             alert(
-              "마이크 권한이 차단되어 있습니다. 브라우저 주소창에서 마이크를 허용해주세요."
+              "마이크 권한이 차단되어 있습니다. 브라우저에서 허용해주세요."
             );
             setIsBrainDumping(false);
-            isBrainDumpingRef.current = false; // 에러 났으니 부활 로직도 꺼줌
+            isBrainDumpingRef.current = false;
           }
         };
       } else {
-        console.warn("이 브라우저는 음성 인식을 지원하지 않습니다.");
+        console.warn("이 브라우저는 웹 음성 인식을 지원하지 않습니다.");
       }
     }
   };
@@ -314,7 +336,7 @@ function MainDashboard({
       progress: 0,
       createdAt: new Date().toISOString().split("T")[0],
     };
-    const res = await fetch("https://project-a7app.vercel.app/api/tasks", {
+    const res = await fetch("/api/tasks", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -340,7 +362,7 @@ function MainDashboard({
           : t
       )
     );
-    await fetch("https://project-a7app.vercel.app/api/tasks", {
+    await fetch("/api/tasks", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -361,7 +383,7 @@ function MainDashboard({
       s.id === id ? updatedSchedule : s
     );
     setSchedules(updatedSchedules);
-    await fetch("https://project-a7app.vercel.app/api/calendar", {
+    await fetch("/api/calendar", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -375,13 +397,10 @@ function MainDashboard({
   const handleResetUsage = async () => {
     if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠습니까?")) return;
     try {
-      const res = await fetch(
-        "https://project-a7app.vercel.app/api/usage/reset",
-        {
-          method: "POST",
-          headers: { "x-user-name": encodeURIComponent(userName) },
-        }
-      );
+      const res = await fetch("/api/usage/reset", {
+        method: "POST",
+        headers: { "x-user-name": encodeURIComponent(userName) },
+      });
       if (res.ok) {
         setAiUsageCount(0);
         alert("리셋 완료! 다시 마이크를 사용할 수 있습니다.");
@@ -435,7 +454,7 @@ function MainDashboard({
     });
 
     // DB 업데이트 로직은 기존과 동일
-    await fetch("https://project-a7app.vercel.app/api/tasks", {
+    await fetch("/api/tasks", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -469,17 +488,14 @@ function MainDashboard({
     setIsAiProcessing(true);
 
     try {
-      const res = await fetch(
-        "https://project-a7app.vercel.app/api/braindump",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-name": encodeURIComponent(userName),
-          },
-          body: JSON.stringify({ text: finalText }),
-        }
-      );
+      const res = await fetch("/api/braindump", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-name": encodeURIComponent(userName),
+        },
+        body: JSON.stringify({ text: finalText }),
+      });
 
       if (res.status === 403) {
         alert(
@@ -513,13 +529,10 @@ function MainDashboard({
   };
 
   const deleteTask = async (id: number | string) => {
-    const res = await fetch(
-      `https://project-a7app.vercel.app/api/tasks?id=${id}`,
-      {
-        method: "DELETE",
-        headers: { "x-user-name": encodeURIComponent(userName) },
-      }
-    );
+    const res = await fetch(`/api/tasks?id=${id}`, {
+      method: "DELETE",
+      headers: { "x-user-name": encodeURIComponent(userName) },
+    });
     if (res.ok) setTasks(tasks.filter(t => t.id !== id));
   };
 
@@ -533,7 +546,7 @@ function MainDashboard({
       )
     );
 
-    await fetch("https://project-a7app.vercel.app/api/tasks", {
+    await fetch("/api/tasks", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -559,7 +572,7 @@ function MainDashboard({
     setTasks(_tasks);
     dragItem.current = null;
     dragOverItem.current = null;
-    await fetch("https://project-a7app.vercel.app/api/tasks/reorder", {
+    await fetch("/api/tasks/reorder", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -572,7 +585,7 @@ function MainDashboard({
   const handleSaveSchedule = async (newSchedule: Schedule) => {
     const updatedSchedules = [...schedules, newSchedule];
     setSchedules(updatedSchedules);
-    await fetch("https://project-a7app.vercel.app/api/calendar", {
+    await fetch("/api/calendar", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -585,7 +598,7 @@ function MainDashboard({
   const handleDeleteSchedule = async (id: string) => {
     const updatedSchedules = schedules.filter(s => s.id !== id);
     setSchedules(updatedSchedules);
-    await fetch("https://project-a7app.vercel.app/api/calendar", {
+    await fetch("/api/calendar", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -597,28 +610,76 @@ function MainDashboard({
 
   // 🎙️ 마이크 버튼 클릭 시 실행되는 토글 함수
   // 🎯 [교체할 코드]
+  // 🎙️ 마이크 버튼 클릭 시 실행되는 토글 함수
+  // 🎯 [교체 완료]
   const toggleBrainDump = async () => {
-    if (!recognitionRef.current) {
-      return alert("음성 인식은 크롬(Chrome) 브라우저에서 가장 잘 작동합니다.");
+    // [종료 로직] 유저가 의도적으로 마이크를 끌 때 (PC/모바일 공통)
+    if (isBrainDumping) {
+      isBrainDumpingRef.current = false;
+      setIsBrainDumping(false); // UI 즉시 끄기
+
+      // 마이크 끄기 명령 하달
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await SpeechRecognition.stop();
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        if (recognitionRef.current) recognitionRef.current.stop();
+      }
+
+      await stopAndSendBrainDump(); // 기존 파트너의 서버 전송 로직 실행
     }
 
-    if (isBrainDumping) {
-      // 1. 유저(우리)가 의도적으로 마이크를 끌 때: OS 부활 로직 작동 못하게 스위치 먼저 내림
-      isBrainDumpingRef.current = false;
-      await stopAndSendBrainDump();
-    } else {
-      // 2. 마이크 시작할 때: 모든 텍스트 금고 초기화 및 스위치 켬
+    // [시작 로직] 마이크 켤 때
+    else {
+      // 모든 텍스트 금고 초기화 및 스위치 켬 (공통)
       setRecognizedText("");
       recognizedTextRef.current = "";
-      finalTranscriptRef.current = ""; // 👈 금고 초기화
+      finalTranscriptRef.current = "";
       setBrainDumpTimeLeft(20);
-      isBrainDumpingRef.current = true; // 👈 지금부터 마이크는 절대 꺼지면 안 된다고 선언
+      isBrainDumpingRef.current = true;
 
-      try {
-        recognitionRef.current.start();
-        setIsBrainDumping(true);
-      } catch (error) {
-        console.error("마이크 시작 에러:", error);
+      // 📱 [1] 모바일 앱 마이크 켜기
+      if (Capacitor.isNativePlatform()) {
+        try {
+          // 권한 체크 (앱에서는 권한 창을 띄워줘야 함)
+          const { speechRecognition } =
+            await SpeechRecognition.requestPermissions();
+          if (speechRecognition !== "granted") {
+            alert("마이크 권한이 필요합니다. 앱 설정에서 허용해주세요.");
+            isBrainDumpingRef.current = false;
+            return;
+          }
+
+          setIsBrainDumping(true);
+          await SpeechRecognition.start({
+            language: "ko-KR",
+            partialResults: true,
+            popup: false, // 구글 기본 마이크 UI(팝업) 숨기기 -> 훨씬 깔끔함
+          });
+        } catch (error) {
+          console.error("네이티브 마이크 시작 에러:", error);
+          setIsBrainDumping(false);
+          isBrainDumpingRef.current = false;
+        }
+      }
+
+      // 💻 [2] PC 웹 마이크 켜기
+      else {
+        if (!recognitionRef.current) {
+          isBrainDumpingRef.current = false;
+          return alert(
+            "음성 인식은 크롬(Chrome) 브라우저에서 가장 잘 작동합니다."
+          );
+        }
+        try {
+          recognitionRef.current.start();
+          setIsBrainDumping(true);
+        } catch (error) {
+          console.error("웹 마이크 시작 에러:", error);
+        }
       }
     }
   };

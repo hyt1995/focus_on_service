@@ -41,7 +41,7 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
 
   const saveSchedule = async () => {
     setIsEditing(false);
-    await fetch("https://project-a7app.vercel.app/api/schedule", {
+    await fetch("/api/schedule", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

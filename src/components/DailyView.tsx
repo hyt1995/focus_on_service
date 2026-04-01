@@ -29,12 +29,9 @@ export default function DailyView({ userName }: { userName: string }) {
 
   const fetchRoutines = async () => {
     try {
-      const res = await fetch(
-        "https://project-a7app.vercel.app/api/daily/template",
-        {
-          headers: { "x-user-name": encodeURIComponent(userName) },
-        }
-      );
+      const res = await fetch("/api/daily/template", {
+        headers: { "x-user-name": encodeURIComponent(userName) },
+      });
       if (res.ok) {
         const data = await res.json();
         setRoutines(data);
@@ -51,7 +48,7 @@ export default function DailyView({ userName }: { userName: string }) {
       routines.map(r => (r.id === id ? { ...r, isEnabled: !currentStatus } : r))
     );
     try {
-      await fetch("https://project-a7app.vercel.app/api/daily/template", {
+      await fetch("/api/daily/template", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -71,13 +68,10 @@ export default function DailyView({ userName }: { userName: string }) {
     if (!confirm("이 데일리 루틴을 삭제하시겠습니까?")) return;
     setRoutines(routines.filter(r => r.id !== id));
     try {
-      await fetch(
-        `https://project-a7app.vercel.app/api/daily/template?id=${id}`,
-        {
-          method: "DELETE",
-          headers: { "x-user-name": encodeURIComponent(userName) },
-        }
-      );
+      await fetch(`/api/daily/template?id=${id}`, {
+        method: "DELETE",
+        headers: { "x-user-name": encodeURIComponent(userName) },
+      });
     } catch (err) {
       console.error("삭제 실패:", err);
     }
@@ -100,21 +94,18 @@ export default function DailyView({ userName }: { userName: string }) {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(
-        "https://project-a7app.vercel.app/api/daily/template",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-name": encodeURIComponent(userName),
-          },
-          body: JSON.stringify({
-            title: newTitle,
-            desc: newDesc,
-            deadline: newDeadline,
-          }),
-        }
-      );
+      const res = await fetch("/api/daily/template", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-name": encodeURIComponent(userName),
+        },
+        body: JSON.stringify({
+          title: newTitle,
+          desc: newDesc,
+          deadline: newDeadline,
+        }),
+      });
 
       if (res.ok) {
         const newRoutine = await res.json();

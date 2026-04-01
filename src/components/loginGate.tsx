@@ -11,7 +11,10 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
 
   const handleLogin = () => {
     if (!loginInput.trim()) return;
-    localStorage.setItem("focus_user_name", loginInput.trim());
+    if (typeof window !== "undefined") {
+      window.localStorage?.setItem("focus_user_name", loginInput.trim());
+    }
+    // localStorage.setItem("focus_user_name", loginInput.trim());
     onLogin(loginInput.trim());
   };
 
