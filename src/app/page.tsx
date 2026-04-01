@@ -225,9 +225,10 @@ function MainDashboard({
         SpeechRecognition.addListener("partialResults", (data: any) => {
           if (data.matches && data.matches.length > 0) {
             const text = data.matches[0];
+            const totalText = finalTranscriptRef.current + text;
             // 네이티브 엔진은 알아서 누적된 문장을 깔끔하게 던져주므로 금고 로직 불필요
-            setRecognizedText(text);
-            recognizedTextRef.current = text;
+            setRecognizedText(totalText);
+            recognizedTextRef.current = totalText;
           }
         });
       } catch (error) {
@@ -644,7 +645,6 @@ function MainDashboard({
       // 📱 [1] 모바일 앱 마이크 켜기
       if (Capacitor.isNativePlatform()) {
         try {
-          // 권한 체크 (앱에서는 권한 창을 띄워줘야 함)
           const { speechRecognition } =
             await SpeechRecognition.requestPermissions();
           if (speechRecognition !== "granted") {
@@ -654,11 +654,23 @@ function MainDashboard({
           }
 
           setIsBrainDumping(true);
-          await SpeechRecognition.start({
-            language: "ko-KR",
-            partialResults: true,
-            popup: false, // 구글 기본 마이크 UI(팝업) 숨기기 -> 훨씬 깔끔함
-          });
+
+          // 🔥 [수정] 안드로이드가 마이크를 꺼버려도 계속 다시 켜는 '무한 부활 루프'
+          while (isBrainDumpingRef.current) {
+            // 마이크를 켜고, 마이크가 (침묵 등으로) 꺼질 때까지 기다립니다(await).
+            await SpeechRecognition.start({
+              language: "ko-KR",
+              partialResults: true,
+              popup: false,
+            });
+
+            // 마이크가 한 세션 종료되면, 지금까지 들은 걸 '확정 금고'에 저장합니다.
+            // (그래야 다음 세션이 시작될 때 이어서 붙일 수 있음)
+            finalTranscriptRef.current = recognizedTextRef.current + " ";
+
+            // 만약 유저가 버튼을 눌러서 끈 거라면 루프를 완전히 빠져나갑니다.
+            if (!isBrainDumpingRef.current) break;
+          }
         } catch (error) {
           console.error("네이티브 마이크 시작 에러:", error);
           setIsBrainDumping(false);
