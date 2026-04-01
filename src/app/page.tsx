@@ -655,22 +655,14 @@ function MainDashboard({
 
           setIsBrainDumping(true);
 
-          // 🔥 [수정] 안드로이드가 마이크를 꺼버려도 계속 다시 켜는 '무한 부활 루프'
-          while (isBrainDumpingRef.current) {
-            // 마이크를 켜고, 마이크가 (침묵 등으로) 꺼질 때까지 기다립니다(await).
-            await SpeechRecognition.start({
-              language: "ko-KR",
-              partialResults: true,
-              popup: false,
-            });
-
-            // 마이크가 한 세션 종료되면, 지금까지 들은 걸 '확정 금고'에 저장합니다.
-            // (그래야 다음 세션이 시작될 때 이어서 붙일 수 있음)
-            finalTranscriptRef.current = recognizedTextRef.current + " ";
-
-            // 만약 유저가 버튼을 눌러서 끈 거라면 루프를 완전히 빠져나갑니다.
-            if (!isBrainDumpingRef.current) break;
-          }
+          // 🚨 독사과였던 while 루프 싹 삭제! 평화롭게 딱 한 번만 켭니다.
+          await SpeechRecognition.start({
+            language: "ko-KR",
+            partialResults: true,
+            // 💡 팁: 안드로이드에서 말을 쉴 때 너무 빨리 끊기는 게 싫다면
+            // 이걸 true로 바꿔서 구글 기본 마이크 팝업을 띄우는 것도 좋은 방법이야!
+            popup: false,
+          });
         } catch (error) {
           console.error("네이티브 마이크 시작 에러:", error);
           setIsBrainDumping(false);
