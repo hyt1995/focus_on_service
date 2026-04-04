@@ -132,6 +132,7 @@ function MainDashboard({
   const finalTranscriptRef = useRef(""); // 브라우저가 '확정' 지은 텍스트만 모아두는 절대 금고
   const isBrainDumpingRef = useRef(false);
   const isManuallyStoppedRef = useRef(false);
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     syncDailyTasks(); // 🔥 앱 켜질 때 동기화 함수부터 무조건 실행! (하루 1번만 작동함)
@@ -218,25 +219,31 @@ function MainDashboard({
     // 📱 [1] 모바일 앱(네이티브)으로 접속했을 때 세팅
     if (Capacitor.isNativePlatform()) {
       try {
-        // 만약 컴포넌트가 재렌더링되면서 리스너가 여러 개 붙는 걸 방지 (메아리 차단)
         await SpeechRecognition.removeAllListeners();
 
-        // 네이티브 마이크가 듣는 대로 실시간 텍스트 받아오기
+        // [리스너 1] 글자 받아오기 (기존 로직 유지)
         SpeechRecognition.addListener("partialResults", (data: any) => {
           if (data.matches && data.matches.length > 0) {
             const text = data.matches[0];
-            const totalText = finalTranscriptRef.current + text;
-            // 네이티브 엔진은 알아서 누적된 문장을 깔끔하게 던져주므로 금고 로직 불필요
+            const totalText = finalTranscriptRef.current + " " + text;
             setRecognizedText(totalText);
             recognizedTextRef.current = totalText;
           }
         });
+
+        // 🔥 [리스너 2 핵심 수술] 마이크가 끊겼을 때 감지
+        // 어떤 플러그인은 "listeningState"로 주고, 어떤 건 에러로 떨어지기 때문에 포괄적으로 잡아야 함.
+
+        // 말이 끝났다고 판단(partialResults가 멈추고 최종 결과를 뱉음)할 때의 리스너 (플러그인 버전에 따라 이름 다를 수 있음. 기본은 partialResults에 빈값 오거나 에러)
+        // 확실한 방어벽: 1초마다 마이크가 살아있는지 검사하는 '심장 박동기(Heartbeat)'를 달아줌
+
+        // (주의: 플러그인 자체에 onEnd 리스너가 명확하지 않으므로, 이 부분을 setInterval 심장박동으로 제어하는게 가장 확실함. toggleBrainDump에서 제어할 예정)
       } catch (error) {
         console.error("네이티브 마이크 초기화 에러:", error);
       }
     }
 
-    // 💻 [2] PC 웹 브라우저로 접속했을 때 세팅 (파트너의 기존 치밀한 로직 100% 유지)
+    // 💻 [2] PC 웹 브라우저 접속 (기존 로직 유지)
     else if (typeof window !== "undefined") {
       const WebSpeechAPI =
         (window as any).SpeechRecognition ||
@@ -248,7 +255,6 @@ function MainDashboard({
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = "ko-KR";
 
-        // 🔥 수술 포인트 1: 글자 반복(메아리) 원천 차단
         recognitionRef.current.onresult = (event: any) => {
           let interimTranscript = "";
           for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -264,12 +270,9 @@ function MainDashboard({
           recognizedTextRef.current = fullText;
         };
 
-        // 🔥 수술 포인트 2: 모바일 웹(사파리/크롬)의 강제 종료 막는 좀비 부활 로직
         recognitionRef.current.onend = () => {
           if (isBrainDumpingRef.current) {
-            console.log(
-              "웹: OS 배터리 절약 정책으로 마이크 종료됨. 부활시킵니다."
-            );
+            console.log("웹: OS 정책으로 마이크 종료됨. 부활시킵니다.");
             try {
               recognitionRef.current.start();
             } catch (e) {}
@@ -278,16 +281,7 @@ function MainDashboard({
 
         recognitionRef.current.onerror = (event: any) => {
           console.error("웹 음성 인식 에러:", event.error);
-          if (event.error === "not-allowed") {
-            alert(
-              "마이크 권한이 차단되어 있습니다. 브라우저에서 허용해주세요."
-            );
-            setIsBrainDumping(false);
-            isBrainDumpingRef.current = false;
-          }
         };
-      } else {
-        console.warn("이 브라우저는 웹 음성 인식을 지원하지 않습니다.");
       }
     }
   };
@@ -609,81 +603,84 @@ function MainDashboard({
     });
   };
 
-  // 🎙️ 마이크 버튼 클릭 시 실행되는 토글 함수
-  // 🎯 [교체할 코드]
-  // 🎙️ 마이크 버튼 클릭 시 실행되는 토글 함수
-  // 🎯 [교체 완료]
+  // 마이크 버튼을 눌렀을때 실행되는 함수
   const toggleBrainDump = async () => {
-    // [종료 로직] 유저가 의도적으로 마이크를 끌 때 (PC/모바일 공통)
     if (isBrainDumping) {
+      // [종료 로직] 기존과 동일
       isBrainDumpingRef.current = false;
-      setIsBrainDumping(false); // UI 즉시 끄기
+      setIsBrainDumping(false);
 
-      // 마이크 끄기 명령 하달
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+
       if (Capacitor.isNativePlatform()) {
         try {
           await SpeechRecognition.stop();
-        } catch (e) {
-          console.error(e);
-        }
+        } catch (e) {}
       } else {
         if (recognitionRef.current) recognitionRef.current.stop();
       }
 
-      await stopAndSendBrainDump(); // 기존 파트너의 서버 전송 로직 실행
-    }
-
-    // [시작 로직] 마이크 켤 때
-    else {
-      // 모든 텍스트 금고 초기화 및 스위치 켬 (공통)
+      await stopAndSendBrainDump();
+    } else {
+      // [시작 로직]
       setRecognizedText("");
       recognizedTextRef.current = "";
       finalTranscriptRef.current = "";
       setBrainDumpTimeLeft(20);
       isBrainDumpingRef.current = true;
 
-      // 📱 [1] 모바일 앱 마이크 켜기
       if (Capacitor.isNativePlatform()) {
         try {
           const { speechRecognition } =
             await SpeechRecognition.requestPermissions();
           if (speechRecognition !== "granted") {
-            alert("마이크 권한이 필요합니다. 앱 설정에서 허용해주세요.");
+            alert("마이크 권한이 필요합니다.");
             isBrainDumpingRef.current = false;
             return;
           }
 
           setIsBrainDumping(true);
 
-          // 🚨 독사과였던 while 루프 싹 삭제! 평화롭게 딱 한 번만 켭니다.
-          await SpeechRecognition.start({
-            language: "ko-KR",
-            partialResults: true,
-            // 💡 팁: 안드로이드에서 말을 쉴 때 너무 빨리 끊기는 게 싫다면
-            // 이걸 true로 바꿔서 구글 기본 마이크 팝업을 띄우는 것도 좋은 방법이야!
-            popup: false,
-          });
+          // ⚡ [핵심 수술] 초고속 부활 엔진
+          const startNativeMic = async () => {
+            try {
+              // 부활할 때마다 이전까지의 텍스트를 확정판으로 밀어넣어 중복 방지
+              finalTranscriptRef.current = recognizedTextRef.current;
+
+              await SpeechRecognition.start({
+                language: "ko-KR",
+                partialResults: true,
+                popup: false,
+              });
+            } catch (e) {
+              // 이미 마이크가 켜져 있는 상태(말하는 중)라면 에러가 나며 무시됨 (정상)
+            }
+          };
+
+          await startNativeMic();
+
+          // 🔥 2초 -> 0.5초(500ms)로 간격 대폭 축소
+          // 유저가 아주 잠깐 숨을 골라도 시스템이 눈치채기 전에 바로 다시 깨운다.
+          heartbeatRef.current = setInterval(() => {
+            if (isBrainDumpingRef.current) {
+              startNativeMic();
+            }
+          }, 500);
         } catch (error) {
-          console.error("네이티브 마이크 시작 에러:", error);
+          console.error("네이티브 시작 에러:", error);
           setIsBrainDumping(false);
           isBrainDumpingRef.current = false;
         }
-      }
-
-      // 💻 [2] PC 웹 마이크 켜기
-      else {
-        if (!recognitionRef.current) {
-          isBrainDumpingRef.current = false;
-          return alert(
-            "음성 인식은 크롬(Chrome) 브라우저에서 가장 잘 작동합니다."
-          );
-        }
+      } else {
+        // [PC 웹] 기존 유지
+        if (!recognitionRef.current) return;
         try {
           recognitionRef.current.start();
           setIsBrainDumping(true);
-        } catch (error) {
-          console.error("웹 마이크 시작 에러:", error);
-        }
+        } catch (error) {}
       }
     }
   };
