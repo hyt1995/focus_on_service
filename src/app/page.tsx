@@ -133,6 +133,7 @@ function MainDashboard({
   const isBrainDumpingRef = useRef(false);
   const isManuallyStoppedRef = useRef(false);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+  const lastHeardRef = useRef<number>(Date.now()); // 🔥 새로 추가할 코드
 
   useEffect(() => {
     syncDailyTasks(); // 🔥 앱 켜질 때 동기화 함수부터 무조건 실행! (하루 1번만 작동함)
@@ -222,7 +223,10 @@ function MainDashboard({
         await SpeechRecognition.removeAllListeners();
 
         // [리스너 1] 글자 받아오기 (기존 로직 유지)
+        // 네이티브 마이크가 듣는 대로 실시간 텍스트 받아오기
         SpeechRecognition.addListener("partialResults", (data: any) => {
+          lastHeardRef.current = Date.now(); // 🔥 핵심: 글자가 들어올 때마다 생존 신고 갱신!
+
           if (data.matches && data.matches.length > 0) {
             const text = data.matches[0];
             const totalText = finalTranscriptRef.current + " " + text;
@@ -664,11 +668,20 @@ function MainDashboard({
 
           // 🔥 2초 -> 0.5초(500ms)로 간격 대폭 축소
           // 유저가 아주 잠깐 숨을 골라도 시스템이 눈치채기 전에 바로 다시 깨운다.
+          lastHeardRef.current = Date.now(); // 시작할 때 타이머 리셋
+
           heartbeatRef.current = setInterval(() => {
             if (isBrainDumpingRef.current) {
-              startNativeMic();
+              const silenceTime = Date.now() - lastHeardRef.current;
+
+              // 🔥 핵심: 2초(2000ms) 이상 아무 소리도 안 들어왔다면
+              // OS가 마이크를 껐다고 판단하고 부드럽게 다시 켠다.
+              if (silenceTime > 2000) {
+                startNativeMic();
+                lastHeardRef.current = Date.now(); // 연타 방지를 위해 타이머 즉시 리셋
+              }
             }
-          }, 500);
+          }, 1000); // 감시는 1초마다 얌전하게 진행
         } catch (error) {
           console.error("네이티브 시작 에러:", error);
           setIsBrainDumping(false);
