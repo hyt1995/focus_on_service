@@ -26,10 +26,14 @@ export default function DailyView({ userName }: { userName: string }) {
   useEffect(() => {
     fetchRoutines();
   }, []);
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const fetchRoutines = async () => {
     try {
-      const res = await fetch("/api/daily/template", {
+      const apiUrl = baseUrl
+        ? `${baseUrl}/api/daily/template`
+        : "/api/daily/template";
+      const res = await fetch(apiUrl, {
         headers: { "x-user-name": encodeURIComponent(userName) },
       });
       if (res.ok) {
@@ -48,7 +52,10 @@ export default function DailyView({ userName }: { userName: string }) {
       routines.map(r => (r.id === id ? { ...r, isEnabled: !currentStatus } : r))
     );
     try {
-      await fetch("/api/daily/template", {
+      const apiUrl = baseUrl
+        ? `${baseUrl}/api/daily/template`
+        : "/api/daily/template";
+      await fetch(apiUrl, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -94,7 +101,10 @@ export default function DailyView({ userName }: { userName: string }) {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/daily/template", {
+      const apiUrl = baseUrl
+        ? `${baseUrl}/api/daily/template`
+        : "/api/daily/template";
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

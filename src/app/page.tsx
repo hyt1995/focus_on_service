@@ -75,6 +75,8 @@ function MainDashboard({
   const [prepCount, setPrepCount] = useState<number | null>(null); // 4초 카운트다운용
   const deepgramTokenRef = useRef(""); // 4초 기다리는 동안 토큰 담아둘 금고
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
   // 2. 상태 변경 및 탭 강제 견인 함수
   const updateTaskStatus = async (id: number | string, newStatus: string) => {
     setTasks(
@@ -85,7 +87,8 @@ function MainDashboard({
     setActiveTab(newStatus);
 
     try {
-      await fetch("/api/tasks", {
+      const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+      await fetch(apiUrl, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -153,7 +156,8 @@ function MainDashboard({
 
   const fetchUsage = async () => {
     try {
-      const res = await fetch("/api/usage", {
+      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
+      const res = await fetch(apiUrl, {
         headers: { "x-user-name": encodeURIComponent(userName) },
       });
       const data = await res.json();
@@ -187,7 +191,8 @@ function MainDashboard({
     }
 
     try {
-      const res = await fetch("/api/daily/sync", {
+      const apiUrl = baseUrl ? `${baseUrl}/api/daily/sync` : "/api/daily/sync";
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "x-user-name": encodeURIComponent(userName) },
       });
@@ -205,7 +210,8 @@ function MainDashboard({
   };
 
   const fetchTasks = async () => {
-    const res = await fetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const res = await fetch(apiUrl, {
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
     const data = await res.json();
@@ -215,7 +221,8 @@ function MainDashboard({
   };
 
   const fetchSchedules = async () => {
-    const res = await fetch("/api/calendar", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    const res = await fetch(apiUrl, {
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
     const data = await res.json();
@@ -295,7 +302,8 @@ function MainDashboard({
       progress: 0,
       createdAt: new Date().toISOString().split("T")[0],
     };
-    const res = await fetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const res = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -321,7 +329,8 @@ function MainDashboard({
           : t
       )
     );
-    await fetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    await fetch(apiUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -342,7 +351,8 @@ function MainDashboard({
       s.id === id ? updatedSchedule : s
     );
     setSchedules(updatedSchedules);
-    await fetch("/api/calendar", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    await fetch(apiUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -356,7 +366,10 @@ function MainDashboard({
   const handleResetUsage = async () => {
     if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠습니까?")) return;
     try {
-      const res = await fetch("/api/usage/reset", {
+      const apiUrl = baseUrl
+        ? `${baseUrl}/api/usage/reset`
+        : "/api/usage/reset";
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "x-user-name": encodeURIComponent(userName) },
       });
@@ -413,7 +426,8 @@ function MainDashboard({
     });
 
     // DB 업데이트 로직은 기존과 동일
-    await fetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    await fetch(apiUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -456,7 +470,8 @@ function MainDashboard({
     setIsAiProcessing(true);
 
     try {
-      const res = await fetch("/api/braindump", {
+      const apiUrl = baseUrl ? `${baseUrl}/api/braindump` : "/api/braindump";
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -512,7 +527,8 @@ function MainDashboard({
       )
     );
 
-    await fetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    await fetch(apiUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -538,7 +554,10 @@ function MainDashboard({
     setTasks(_tasks);
     dragItem.current = null;
     dragOverItem.current = null;
-    await fetch("/api/tasks/reorder", {
+    const apiUrl = baseUrl
+      ? `${baseUrl}/api/tasks/reorder`
+      : "/api/tasks/reorder";
+    await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -551,7 +570,8 @@ function MainDashboard({
   const handleSaveSchedule = async (newSchedule: Schedule) => {
     const updatedSchedules = [...schedules, newSchedule];
     setSchedules(updatedSchedules);
-    await fetch("/api/calendar", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    await fetch(apiUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -564,7 +584,8 @@ function MainDashboard({
   const handleDeleteSchedule = async (id: string) => {
     const updatedSchedules = schedules.filter(s => s.id !== id);
     setSchedules(updatedSchedules);
-    await fetch("/api/calendar", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    await fetch(apiUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -609,7 +630,8 @@ function MainDashboard({
       }
 
       // 🌐 마이크를 입구에서 잡았으니, 이제 안심하고 백엔드에서 딥그램 토큰을 받아옴
-      const res = await fetch("/api/deepgram");
+      const apiUrl = baseUrl ? `${baseUrl}/api/deepgram` : "/api/deepgram";
+      const res = await fetch(apiUrl);
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error("토큰 발급 실패");
       deepgramTokenRef.current = data.token;

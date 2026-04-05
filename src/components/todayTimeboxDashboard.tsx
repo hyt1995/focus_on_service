@@ -16,6 +16,8 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
   const [now, setNow] = useState(Date.now());
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // 꺾쇠 열림 상태
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
   const today = new Date();
   const dateString = `${today.getMonth() + 1}월 ${today.getDate()}일 ${
     ["일", "월", "화", "수", "목", "금", "토"][today.getDay()]
@@ -28,7 +30,8 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
 
   useEffect(() => {
     if (!userName) return;
-    fetch("/api/schedule", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
+    fetch(apiUrl, {
       headers: { "x-user-name": encodeURIComponent(userName) },
     })
       .then(res => res.json())
@@ -41,7 +44,8 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
 
   const saveSchedule = async () => {
     setIsEditing(false);
-    await fetch("/api/schedule", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
+    await fetch(apiUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

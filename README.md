@@ -1,3 +1,5 @@
+NEXT_PUBLIC_API_BASE_URL=https://project-a7app.vercel.app
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
