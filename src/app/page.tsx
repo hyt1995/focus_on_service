@@ -599,11 +599,12 @@ function MainDashboard({
 
     try {
       // 📱 모바일 네이티브 마이크 권한 체크 (안전장치)
+      // window. 가 아니라 파트너가 예전부터 상단에 import 해두었던 진짜 플러그인을 호출함
       if (
         typeof window !== "undefined" &&
         (window as any).Capacitor?.isNativePlatform()
       ) {
-        await (window as any).SpeechRecognition.requestPermissions();
+        await SpeechRecognition.requestPermissions();
       }
 
       // 1. 백엔드에서 10분짜리 1회용 딥그램 통행증 발급
@@ -897,50 +898,6 @@ function MainDashboard({
           timeLeft={brainDumpTimeLeft}
           recognizedText={recognizedText}
         />
-        {/* <BrainDumpModal /> */}
-        {/* {isBrainDumping && (
-          <div className="fixed bottom-32 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-white/95 p-5 rounded-2xl shadow-2xl text-center border-2 border-[#FF9500] z-50 animate-in slide-in-from-bottom-4">
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9500] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-[#FF9500]"></span>
-                </span>
-                <p className="text-[#FF9500] text-xs font-bold">
-                  AI 브레인덤프 작동 중
-                </p>
-              </div>
-              <p className="text-red-500 text-xs font-bold tracking-wider">
-                {brainDumpTimeLeft}초 남음
-              </p>
-            </div>
-
-            <div className="w-full bg-gray-100 h-1.5 rounded-full mb-4 overflow-hidden">
-              <div
-                className="bg-[#FF9500] h-full transition-all duration-1000 ease-linear"
-                style={{ width: `${(brainDumpTimeLeft! / 20) * 100}%` }}
-              />
-            </div>
-
-            <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 min-h-[80px] flex flex-col justify-center">
-              {recognizedText ? (
-                <p className="text-gray-800 text-sm font-medium break-words leading-relaxed">
-                  "{recognizedText}"
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  <p className="text-gray-800 text-sm font-bold">
-                    생각나는 업무나 아이디어를 말해주세요.
-                  </p>
-                  <p className="text-gray-500 text-xs font-medium">
-                    AI가 기존 일정과 결합하여 <br />
-                    지금 당장 해야 할 최적의 순서를 다시 짜드립니다.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )} */}
 
         {isAiProcessing && (
           <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-black/90 text-white px-8 py-4 rounded-full text-sm font-bold animate-bounce z-50 shadow-xl">
