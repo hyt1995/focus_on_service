@@ -9,9 +9,7 @@ const config: CapacitorConfig = {
   webDir: "out",
   server: {
     // 🎯 폰에 깔린 앱이 켜지면 무조건 이 주소(Vercel)를 비춰라!
-    url: isDev
-      ? "http://192.168.45.119:3000"
-      : "https://project-a7app.vercel.app/",
+    url: "https://project-a7app.vercel.app/",
     cleartext: true,
   },
 };

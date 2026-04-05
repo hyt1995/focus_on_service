@@ -574,22 +574,19 @@ function MainDashboard({
     });
   };
 
-  // 마이크 버튼을 눌렀을때 실행되는 함
+  // 마이크 버튼을 눌렀을때 실행되는 함// 🎙️ 1. 버튼 눌렀을 때 (마이크 즉시 선점 + 4초 카운트다운)
   const toggleBrainDump = async () => {
-    // 🔴 [마이크 수동 끄기]
     if (isBrainDumping) {
       setPrepCount(null);
       await stopAndSendBrainDump();
       return;
     }
 
-    // 횟수 다 썼으면 입구 컷 (버튼 회색으로 잠겼겠지만 혹시 모를 방어)
     if (!isPremium && aiUsageCount >= 2) {
       alert("오늘 무료 제공량을 모두 소진했습니다.");
       return;
     }
 
-    // 🟢 [마이크 켜기] 초기화
     setRecognizedText("");
     recognizedTextRef.current = "";
     finalTranscriptRef.current = "";
@@ -598,8 +595,12 @@ function MainDashboard({
     setBrainDumpTimeLeft(null);
 
     try {
-      // 📱 모바일 네이티브 마이크 권한 체크 (안전장치)
-      // window. 가 아니라 파트너가 예전부터 상단에 import 해두었던 진짜 플러그인을 호출함
+      // 🔥 [진짜 해결책] 모든 비동기 작업(fetch) 전에 마이크부터 무조건 켜기!
+      // 버튼 누른 직후라 웹뷰가 100% 권한을 허락해 줌.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // 마이크 확보 후, 네이티브 권한 플러그인 안전장치 가동
       if (
         typeof window !== "undefined" &&
         (window as any).Capacitor?.isNativePlatform()
@@ -607,86 +608,26 @@ function MainDashboard({
         await SpeechRecognition.requestPermissions();
       }
 
-      // 1. 백엔드에서 10분짜리 1회용 딥그램 통행증 발급
+      // 🌐 마이크를 입구에서 잡았으니, 이제 안심하고 백엔드에서 딥그램 토큰을 받아옴
       const res = await fetch("/api/deepgram");
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error("토큰 발급 실패");
+      deepgramTokenRef.current = data.token;
 
-      deepgramTokenRef.current = data.token; // 토큰 금고에 보관
-
-      // 🔥 [핵심 1] 4초 기다리지 말고, 버튼 누른 '즉시' 마이크 하드웨어부터 켜놓는다. (보안 정책 통과)
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      // 🔥 [핵심 2] 소켓도 미리 열어둔다. (4초 동안 연결 딜레이 완벽 제거)
+      // 소켓 통신선 미리 연결해두기
       const socket = new WebSocket(
         "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
         ["token", data.token]
       );
       socketRef.current = socket;
 
-      // 마이크랑 통신선 다 뚫어놓고 4초 카운트다운 우아하게 시작!
+      // 🚀 모든 준비가 끝났으니 우아하게 4초 카운트다운 시작!
       setPrepCount(4);
-
-      // // 2. 마이크 권한 획득 및 스트림 열기 (웹 표준 API 사용)
-      // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // streamRef.current = stream;
-
-      // 3. 딥그램 웹소켓 연결 (마법의 키워드: endpointing=false -> 침묵해도 절대 안 꺼짐)
-      // const socket = new WebSocket(
-      //   "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
-      //   ["token", data.token]
-      // );
-      // socketRef.current = socket;
-
-      // socket.onopen = () => {
-      //   // 소켓이 열리면 0.25초(250ms)마다 내 목소리를 잘라서 딥그램 서버로 쏜다.
-      //   const mediaRecorder = new MediaRecorder(stream);
-      //   mediaRecorderRef.current = mediaRecorder;
-
-      //   mediaRecorder.addEventListener("dataavailable", event => {
-      //     if (event.data.size > 0 && socket.readyState === 1) {
-      //       socket.send(event.data);
-      //     }
-      //   });
-      //   mediaRecorder.start(250);
-      // };
-
-      // // 4. 딥그램이 번역해서 실시간으로 쏴주는 글자 받기
-      // socket.onmessage = message => {
-      //   const received = JSON.parse(message.data);
-      //   // 번역된 데이터가 존재하면 추출
-      //   if (received.channel && received.channel.alternatives[0]) {
-      //     const transcript = received.channel.alternatives[0].transcript;
-
-      //     if (transcript) {
-      //       // is_final이 true면 딥그램이 "이 문장은 확실함!" 하고 도장 찍은 거.
-      //       if (received.is_final) {
-      //         finalTranscriptRef.current += transcript + " ";
-      //       }
-
-      //       // 화면 렌더링용 글자 조합 (확정본 + 지금 고민 중인 임시본)
-      //       const currentText =
-      //         finalTranscriptRef.current +
-      //         (received.is_final ? "" : transcript);
-      //       setRecognizedText(currentText);
-      //       recognizedTextRef.current = currentText;
-      //     }
-      //   }
-      // };
-
-      // socket.onerror = error => {
-      //   console.error("Deepgram Socket Error:", error);
-      // };
     } catch (err: any) {
-      console.error("마이크 시작 에러:", err);
+      console.error("준비 에러:", err);
       setIsBrainDumping(false);
       isBrainDumpingRef.current = false;
-      // alert("마이크 연결에 실패했습니다. 마이크 권한을 허용해주세요.");
-      alert(
-        `🚨 마이크 실패 진짜 원인:\n${err.message || "권한을 확인해주세요"}`
-      );
-      // await stopAndSendBrainDump(); // 에러 나면 UI 깔끔하게 리셋
+      alert(`마이크 에러:\n${err.message || "권한을 확인해주세요"}`);
     }
   };
 
