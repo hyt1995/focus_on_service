@@ -616,12 +616,7 @@ function MainDashboard({
     setBrainDumpTimeLeft(null);
 
     try {
-      // 🔥 [진짜 해결책] 모든 비동기 작업(fetch) 전에 마이크부터 무조건 켜기!
-      // 버튼 누른 직후라 웹뷰가 100% 권한을 허락해 줌.
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      // 마이크 확보 후, 네이티브 권한 플러그인 안전장치 가동
+      // 1️⃣ [가장 먼저] 네이티브 앱(폰)의 OS 권한부터 정중하게 허락받기
       if (
         typeof window !== "undefined" &&
         (window as any).Capacitor?.isNativePlatform()
@@ -629,14 +624,19 @@ function MainDashboard({
         await SpeechRecognition.requestPermissions();
       }
 
-      // 🌐 마이크를 입구에서 잡았으니, 이제 안심하고 백엔드에서 딥그램 토큰을 받아옴
-      const apiUrl = baseUrl ? `${baseUrl}/api/deepgram` : "/api/deepgram";
-      const res = await fetch(apiUrl);
+      // 2️⃣ [그 다음] OS가 허락했으니 안심하고 실제 마이크 하드웨어 켜기
+      // (Vercel이 아닌 로컬 앱 환경이라 이제 딜레이 튕김 없음!)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // 3️⃣ 백엔드(Vercel) 통신해서 딥그램 토큰 받아오기
+      const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+      const res = await fetch(`${BASE_URL}/api/deepgram`);
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error("토큰 발급 실패");
       deepgramTokenRef.current = data.token;
 
-      // 소켓 통신선 미리 연결해두기
+      // 4️⃣ 소켓 통신선 미리 연결해두기
       const socket = new WebSocket(
         "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
         ["token", data.token]
