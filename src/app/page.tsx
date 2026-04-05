@@ -20,6 +20,7 @@ import { Task, Schedule } from "@/types";
 import DailyView from "@/components/DailyView";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition } from "@capacitor-community/speech-recognition";
+import BrainDumpModal from "@/components/BrainDumpModal"; // 상단에 추가
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -70,6 +71,9 @@ function MainDashboard({
 
   const [showSniperModal, setShowSniperModal] = useState(false);
   const [sniperTask, setSniperTask] = useState<Task | null>(null);
+
+  const [prepCount, setPrepCount] = useState<number | null>(null); // 4초 카운트다운용
+  const deepgramTokenRef = useRef(""); // 4초 기다리는 동안 토큰 담아둘 금고
 
   // 2. 상태 변경 및 탭 강제 견인 함수
   const updateTaskStatus = async (id: number | string, newStatus: string) => {
@@ -134,12 +138,16 @@ function MainDashboard({
   const isManuallyStoppedRef = useRef(false);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
   const lastHeardRef = useRef<number>(Date.now()); // 🔥 새로 추가할 코드
+  // 🎙️ 딥그램 실시간 스트리밍 제어용 Refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     syncDailyTasks(); // 🔥 앱 켜질 때 동기화 함수부터 무조건 실행! (하루 1번만 작동함)
     fetchTasks();
     fetchSchedules();
-    initSpeechRecognition();
+    // initSpeechRecognition();
     fetchUsage();
   }, []);
 
@@ -214,82 +222,6 @@ function MainDashboard({
     if (Array.isArray(data)) setSchedules(data);
   };
 
-  // 🎙️ 복구된 음성 인식 초기화 로직 (PC + 모바일 앱 완벽 호환)
-  // 🎯 [교체 완료]
-  const initSpeechRecognition = async () => {
-    // 📱 [1] 모바일 앱(네이티브)으로 접속했을 때 세팅
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await SpeechRecognition.removeAllListeners();
-
-        // [리스너 1] 글자 받아오기 (기존 로직 유지)
-        // 네이티브 마이크가 듣는 대로 실시간 텍스트 받아오기
-        SpeechRecognition.addListener("partialResults", (data: any) => {
-          lastHeardRef.current = Date.now(); // 🔥 핵심: 글자가 들어올 때마다 생존 신고 갱신!
-
-          if (data.matches && data.matches.length > 0) {
-            const text = data.matches[0];
-            const totalText = finalTranscriptRef.current + " " + text;
-            setRecognizedText(totalText);
-            recognizedTextRef.current = totalText;
-          }
-        });
-
-        // 🔥 [리스너 2 핵심 수술] 마이크가 끊겼을 때 감지
-        // 어떤 플러그인은 "listeningState"로 주고, 어떤 건 에러로 떨어지기 때문에 포괄적으로 잡아야 함.
-
-        // 말이 끝났다고 판단(partialResults가 멈추고 최종 결과를 뱉음)할 때의 리스너 (플러그인 버전에 따라 이름 다를 수 있음. 기본은 partialResults에 빈값 오거나 에러)
-        // 확실한 방어벽: 1초마다 마이크가 살아있는지 검사하는 '심장 박동기(Heartbeat)'를 달아줌
-
-        // (주의: 플러그인 자체에 onEnd 리스너가 명확하지 않으므로, 이 부분을 setInterval 심장박동으로 제어하는게 가장 확실함. toggleBrainDump에서 제어할 예정)
-      } catch (error) {
-        console.error("네이티브 마이크 초기화 에러:", error);
-      }
-    }
-
-    // 💻 [2] PC 웹 브라우저 접속 (기존 로직 유지)
-    else if (typeof window !== "undefined") {
-      const WebSpeechAPI =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-
-      if (WebSpeechAPI) {
-        recognitionRef.current = new WebSpeechAPI();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = "ko-KR";
-
-        recognitionRef.current.onresult = (event: any) => {
-          let interimTranscript = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscriptRef.current += transcript + " ";
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-          const fullText = finalTranscriptRef.current + interimTranscript;
-          setRecognizedText(fullText);
-          recognizedTextRef.current = fullText;
-        };
-
-        recognitionRef.current.onend = () => {
-          if (isBrainDumpingRef.current) {
-            console.log("웹: OS 정책으로 마이크 종료됨. 부활시킵니다.");
-            try {
-              recognitionRef.current.start();
-            } catch (e) {}
-          }
-        };
-
-        recognitionRef.current.onerror = (event: any) => {
-          console.error("웹 음성 인식 에러:", event.error);
-        };
-      }
-    }
-  };
-
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!activeTaskId) return;
@@ -307,6 +239,34 @@ function MainDashboard({
       setBrainDumpTimeLeft(prev => prev! - 1);
     }, 1000);
     return () => clearTimeout(timer);
+  }, [brainDumpTimeLeft]);
+
+  // ⏳ 1. 4초 준비 타이머 로직 (4 -> 3 -> 2 -> 1 -> 녹음 시작)
+  useEffect(() => {
+    if (prepCount === null) return;
+    if (prepCount > 0) {
+      const timer = setTimeout(() => setPrepCount(prepCount - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (prepCount === 0) {
+      setPrepCount(null); // 준비 끝! 화면에서 숫자 지우기
+      startDeepgramRecording(); // 진짜 녹음 함수 실행
+    }
+  }, [prepCount]);
+
+  // ⏳ 2. 20초 진짜 녹음 타이머 로직 (20 -> 19 ... -> 0 -> 전송)
+  useEffect(() => {
+    if (brainDumpTimeLeft === null) return;
+    if (brainDumpTimeLeft > 0) {
+      const timer = setTimeout(
+        () => setBrainDumpTimeLeft(brainDumpTimeLeft - 1),
+        1000
+      );
+      return () => clearTimeout(timer);
+    }
+    if (brainDumpTimeLeft === 0) {
+      stopAndSendBrainDump(); // 20초 다 쓰면 자동 종료 및 AI 전송
+    }
   }, [brainDumpTimeLeft]);
 
   const getRealtimeProgress = (task: Task, currentTime: number) => {
@@ -472,17 +432,26 @@ function MainDashboard({
     });
   };
 
+  // 🎙️ 3. 안전하게 종료하고 서버로 텍스트 보내기
   const stopAndSendBrainDump = async () => {
-    isManuallyStoppedRef.current = true; // 🎯 확실히 죽임
-    if (recognitionRef.current) recognitionRef.current.stop();
+    // 하드웨어 마이크 & 소켓 숨통 끊기
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+    }
+    if (socketRef.current) socketRef.current.close();
+    if (streamRef.current)
+      streamRef.current.getTracks().forEach(track => track.stop());
+
     setIsBrainDumping(false);
+    isBrainDumpingRef.current = false;
     setBrainDumpTimeLeft(null);
+    setPrepCount(null); // 혹시 카운트다운 중에 껐다면 초기화
 
     const finalText = recognizedTextRef.current;
-    if (!finalText.trim()) {
-      alert("인식된 음성이 없습니다. 다시 시도해주세요.");
-      return;
-    }
+    if (!finalText.trim()) return; // 말 안 했으면 그냥 종료
 
     setIsAiProcessing(true);
 
@@ -497,9 +466,8 @@ function MainDashboard({
       });
 
       if (res.status === 403) {
-        alert(
-          "무료 제공량(하루 2회)을 모두 소진했습니다. 내일 다시 시도해주세요!"
-        );
+        alert("오늘 무료 제공량(하루 2회)을 모두 소진했습니다.");
+        setAiUsageCount(2); // 버튼 회색으로 잠그기
         setIsAiProcessing(false);
         return;
       }
@@ -509,7 +477,6 @@ function MainDashboard({
         setTasks(updatedTasks);
         setAiUsageCount(prev => prev + 1);
 
-        // 🔥 핵심 수술: AI 정렬이 끝나면 무조건 1순위(배열 0번째) 태스크를 물고 스나이퍼 모달을 띄운다!
         const topPriorityTask =
           updatedTasks.find((t: Task) => t.status === "todo") ||
           updatedTasks[0];
@@ -607,94 +574,148 @@ function MainDashboard({
     });
   };
 
-  // 마이크 버튼을 눌렀을때 실행되는 함수
+  // 마이크 버튼을 눌렀을때 실행되는 함
   const toggleBrainDump = async () => {
+    // 🔴 [마이크 수동 끄기]
     if (isBrainDumping) {
-      // [종료 로직] 기존과 동일
-      isBrainDumpingRef.current = false;
-      setIsBrainDumping(false);
-
-      if (heartbeatRef.current) {
-        clearInterval(heartbeatRef.current);
-        heartbeatRef.current = null;
-      }
-
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await SpeechRecognition.stop();
-        } catch (e) {}
-      } else {
-        if (recognitionRef.current) recognitionRef.current.stop();
-      }
-
+      setPrepCount(null);
       await stopAndSendBrainDump();
-    } else {
-      // [시작 로직]
-      setRecognizedText("");
-      recognizedTextRef.current = "";
-      finalTranscriptRef.current = "";
-      setBrainDumpTimeLeft(20);
-      isBrainDumpingRef.current = true;
+      return;
+    }
 
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const { speechRecognition } =
-            await SpeechRecognition.requestPermissions();
-          if (speechRecognition !== "granted") {
-            alert("마이크 권한이 필요합니다.");
-            isBrainDumpingRef.current = false;
-            return;
-          }
+    // 횟수 다 썼으면 입구 컷 (버튼 회색으로 잠겼겠지만 혹시 모를 방어)
+    if (!isPremium && aiUsageCount >= 2) {
+      alert("오늘 무료 제공량을 모두 소진했습니다.");
+      return;
+    }
 
-          setIsBrainDumping(true);
+    // 🟢 [마이크 켜기] 초기화
+    setRecognizedText("");
+    recognizedTextRef.current = "";
+    finalTranscriptRef.current = "";
+    setIsBrainDumping(true);
+    isBrainDumpingRef.current = true;
+    setBrainDumpTimeLeft(null);
 
-          // ⚡ [핵심 수술] 초고속 부활 엔진
-          const startNativeMic = async () => {
-            try {
-              // 부활할 때마다 이전까지의 텍스트를 확정판으로 밀어넣어 중복 방지
-              finalTranscriptRef.current = recognizedTextRef.current;
-
-              await SpeechRecognition.start({
-                language: "ko-KR",
-                partialResults: true,
-                popup: false,
-              });
-            } catch (e) {
-              // 이미 마이크가 켜져 있는 상태(말하는 중)라면 에러가 나며 무시됨 (정상)
-            }
-          };
-
-          await startNativeMic();
-
-          // 🔥 2초 -> 0.5초(500ms)로 간격 대폭 축소
-          // 유저가 아주 잠깐 숨을 골라도 시스템이 눈치채기 전에 바로 다시 깨운다.
-          lastHeardRef.current = Date.now(); // 시작할 때 타이머 리셋
-
-          heartbeatRef.current = setInterval(() => {
-            if (isBrainDumpingRef.current) {
-              const silenceTime = Date.now() - lastHeardRef.current;
-
-              // 🔥 핵심: 2초(2000ms) 이상 아무 소리도 안 들어왔다면
-              // OS가 마이크를 껐다고 판단하고 부드럽게 다시 켠다.
-              if (silenceTime > 2000) {
-                startNativeMic();
-                lastHeardRef.current = Date.now(); // 연타 방지를 위해 타이머 즉시 리셋
-              }
-            }
-          }, 1000); // 감시는 1초마다 얌전하게 진행
-        } catch (error) {
-          console.error("네이티브 시작 에러:", error);
-          setIsBrainDumping(false);
-          isBrainDumpingRef.current = false;
-        }
-      } else {
-        // [PC 웹] 기존 유지
-        if (!recognitionRef.current) return;
-        try {
-          recognitionRef.current.start();
-          setIsBrainDumping(true);
-        } catch (error) {}
+    try {
+      // 📱 모바일 네이티브 마이크 권한 체크 (안전장치)
+      if (
+        typeof window !== "undefined" &&
+        (window as any).Capacitor?.isNativePlatform()
+      ) {
+        await (window as any).SpeechRecognition.requestPermissions();
       }
+
+      // 1. 백엔드에서 10분짜리 1회용 딥그램 통행증 발급
+      const res = await fetch("/api/deepgram");
+      const data = await res.json();
+      if (!res.ok || !data.token) throw new Error("토큰 발급 실패");
+
+      deepgramTokenRef.current = data.token; // 토큰 금고에 보관
+
+      setPrepCount(4); // 🚀 4초 카운트다운 시작! (위의 useEffect가 받아서 0초까지 내림)
+
+      // // 2. 마이크 권한 획득 및 스트림 열기 (웹 표준 API 사용)
+      // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // streamRef.current = stream;
+
+      // 3. 딥그램 웹소켓 연결 (마법의 키워드: endpointing=false -> 침묵해도 절대 안 꺼짐)
+      // const socket = new WebSocket(
+      //   "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
+      //   ["token", data.token]
+      // );
+      // socketRef.current = socket;
+
+      // socket.onopen = () => {
+      //   // 소켓이 열리면 0.25초(250ms)마다 내 목소리를 잘라서 딥그램 서버로 쏜다.
+      //   const mediaRecorder = new MediaRecorder(stream);
+      //   mediaRecorderRef.current = mediaRecorder;
+
+      //   mediaRecorder.addEventListener("dataavailable", event => {
+      //     if (event.data.size > 0 && socket.readyState === 1) {
+      //       socket.send(event.data);
+      //     }
+      //   });
+      //   mediaRecorder.start(250);
+      // };
+
+      // // 4. 딥그램이 번역해서 실시간으로 쏴주는 글자 받기
+      // socket.onmessage = message => {
+      //   const received = JSON.parse(message.data);
+      //   // 번역된 데이터가 존재하면 추출
+      //   if (received.channel && received.channel.alternatives[0]) {
+      //     const transcript = received.channel.alternatives[0].transcript;
+
+      //     if (transcript) {
+      //       // is_final이 true면 딥그램이 "이 문장은 확실함!" 하고 도장 찍은 거.
+      //       if (received.is_final) {
+      //         finalTranscriptRef.current += transcript + " ";
+      //       }
+
+      //       // 화면 렌더링용 글자 조합 (확정본 + 지금 고민 중인 임시본)
+      //       const currentText =
+      //         finalTranscriptRef.current +
+      //         (received.is_final ? "" : transcript);
+      //       setRecognizedText(currentText);
+      //       recognizedTextRef.current = currentText;
+      //     }
+      //   }
+      // };
+
+      // socket.onerror = error => {
+      //   console.error("Deepgram Socket Error:", error);
+      // };
+    } catch (err) {
+      console.error("마이크 시작 에러:", err);
+      setIsBrainDumping(false);
+      isBrainDumpingRef.current = false;
+      alert("마이크 연결에 실패했습니다. 마이크 권한을 허용해주세요.");
+      // await stopAndSendBrainDump(); // 에러 나면 UI 깔끔하게 리셋
+    }
+  };
+
+  // 🎙️ 2. 진짜 녹음 시작 (4초 끝나고 자동으로 불리는 함수)
+  const startDeepgramRecording = async () => {
+    setBrainDumpTimeLeft(20); // 20초 카운트다운 시작!
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const socket = new WebSocket(
+        "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
+        ["token", deepgramTokenRef.current]
+      );
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        mediaRecorder.addEventListener("dataavailable", event => {
+          if (event.data.size > 0 && socket.readyState === 1)
+            socket.send(event.data);
+        });
+        mediaRecorder.start(250);
+      };
+
+      socket.onmessage = message => {
+        const received = JSON.parse(message.data);
+        if (received.channel?.alternatives[0]) {
+          const transcript = received.channel.alternatives[0].transcript;
+          if (transcript) {
+            if (received.is_final)
+              finalTranscriptRef.current += transcript + " ";
+            const currentText =
+              finalTranscriptRef.current +
+              (received.is_final ? "" : transcript);
+            setRecognizedText(currentText);
+            recognizedTextRef.current = currentText;
+          }
+        }
+      };
+    } catch (err) {
+      console.error("녹음 시작 에러:", err);
+      stopAndSendBrainDump();
     }
   };
 
@@ -868,7 +889,15 @@ function MainDashboard({
           )}
         </section>
 
-        {isBrainDumping && (
+        {/* 모듈화된 브레인덤프 모달 */}
+        <BrainDumpModal
+          isOpen={isBrainDumping}
+          prepCount={prepCount}
+          timeLeft={brainDumpTimeLeft}
+          recognizedText={recognizedText}
+        />
+        {/* <BrainDumpModal /> */}
+        {/* {isBrainDumping && (
           <div className="fixed bottom-32 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-white/95 p-5 rounded-2xl shadow-2xl text-center border-2 border-[#FF9500] z-50 animate-in slide-in-from-bottom-4">
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
@@ -910,7 +939,7 @@ function MainDashboard({
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {isAiProcessing && (
           <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-black/90 text-white px-8 py-4 rounded-full text-sm font-bold animate-bounce z-50 shadow-xl">
