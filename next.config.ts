@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
   // 🎯 Vercel 배포 시에는 'export'를 빼야 API 라우트가 정상 작동함!
   // 터미널에서 IS_EXPORT=true npm run build 칠 때만 export 모드가 됨
   // output: isExport ? "export" : undefined,
-  output: undefined,
-  // output: "export",
+  // output: undefined,
+  output: "export", // 이렇게 작동해야함
 
   // 앱 빌드 시 Next.js 서버 이미지를 못 쓰므로 최적화 해제
   images: {
