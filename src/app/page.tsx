@@ -614,7 +614,19 @@ function MainDashboard({
 
       deepgramTokenRef.current = data.token; // 토큰 금고에 보관
 
-      setPrepCount(4); // 🚀 4초 카운트다운 시작! (위의 useEffect가 받아서 0초까지 내림)
+      // 🔥 [핵심 1] 4초 기다리지 말고, 버튼 누른 '즉시' 마이크 하드웨어부터 켜놓는다. (보안 정책 통과)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // 🔥 [핵심 2] 소켓도 미리 열어둔다. (4초 동안 연결 딜레이 완벽 제거)
+      const socket = new WebSocket(
+        "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
+        ["token", data.token]
+      );
+      socketRef.current = socket;
+
+      // 마이크랑 통신선 다 뚫어놓고 4초 카운트다운 우아하게 시작!
+      setPrepCount(4);
 
       // // 2. 마이크 권한 획득 및 스트림 열기 (웹 표준 API 사용)
       // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -671,7 +683,9 @@ function MainDashboard({
       setIsBrainDumping(false);
       isBrainDumpingRef.current = false;
       // alert("마이크 연결에 실패했습니다. 마이크 권한을 허용해주세요.");
-      alert(`🚨 마이크 실패 진짜 원인:\n${err.message || JSON.stringify(err)}`);
+      alert(
+        `🚨 마이크 실패 진짜 원인:\n${err.message || "권한을 확인해주세요"}`
+      );
       // await stopAndSendBrainDump(); // 에러 나면 UI 깔끔하게 리셋
     }
   };
@@ -681,25 +695,39 @@ function MainDashboard({
     setBrainDumpTimeLeft(20); // 20초 카운트다운 시작!
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // streamRef.current = stream;
 
-      const socket = new WebSocket(
-        "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
-        ["token", deepgramTokenRef.current]
-      );
-      socketRef.current = socket;
+      // const socket = new WebSocket(
+      //   "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
+      //   ["token", deepgramTokenRef.current]
+      // );
+      // socketRef.current = socket;
 
-      socket.onopen = () => {
-        const mediaRecorder = new MediaRecorder(stream);
+      if (!streamRef.current || !socketRef.current)
+        throw new Error("마이크/소켓 미준비");
+      const socket = socketRef.current;
+
+      // 🔥 [핵심 3] 4초 뒤, 대기시켜놨던 마이크 소리를 딥그램으로 쏘기 시작
+      const startRecording = () => {
+        const mediaRecorder = new MediaRecorder(streamRef.current!);
         mediaRecorderRef.current = mediaRecorder;
         mediaRecorder.addEventListener("dataavailable", event => {
-          if (event.data.size > 0 && socket.readyState === 1)
+          if (event.data.size > 0 && socket.readyState === 1) {
             socket.send(event.data);
+          }
         });
         mediaRecorder.start(250);
       };
 
+      // 이미 소켓이 열렸다면 즉시 쏘고, 아니라면 열리는 순간 쏜다
+      if (socket.readyState === 1) {
+        startRecording();
+      } else {
+        socket.onopen = startRecording;
+      }
+
+      // 글자 받아오기
       socket.onmessage = message => {
         const received = JSON.parse(message.data);
         if (received.channel?.alternatives[0]) {
@@ -715,8 +743,35 @@ function MainDashboard({
           }
         }
       };
-    } catch (err) {
+
+      // socket.onopen = () => {
+      //   const mediaRecorder = new MediaRecorder(stream);
+      //   mediaRecorderRef.current = mediaRecorder;
+      //   mediaRecorder.addEventListener("dataavailable", event => {
+      //     if (event.data.size > 0 && socket.readyState === 1)
+      //       socket.send(event.data);
+      //   });
+      //   mediaRecorder.start(250);
+      // };
+
+      // socket.onmessage = message => {
+      //   const received = JSON.parse(message.data);
+      //   if (received.channel?.alternatives[0]) {
+      //     const transcript = received.channel.alternatives[0].transcript;
+      //     if (transcript) {
+      //       if (received.is_final)
+      //         finalTranscriptRef.current += transcript + " ";
+      //       const currentText =
+      //         finalTranscriptRef.current +
+      //         (received.is_final ? "" : transcript);
+      //       setRecognizedText(currentText);
+      //       recognizedTextRef.current = currentText;
+      //     }
+      //   }
+      // };
+    } catch (err: any) {
       console.error("녹음 시작 에러:", err);
+      alert(`녹음 에러:\n${err.message}`);
       stopAndSendBrainDump();
     }
   };
