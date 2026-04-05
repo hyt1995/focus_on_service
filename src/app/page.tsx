@@ -665,11 +665,12 @@ function MainDashboard({
       // socket.onerror = error => {
       //   console.error("Deepgram Socket Error:", error);
       // };
-    } catch (err) {
+    } catch (err: any) {
       console.error("마이크 시작 에러:", err);
       setIsBrainDumping(false);
       isBrainDumpingRef.current = false;
-      alert("마이크 연결에 실패했습니다. 마이크 권한을 허용해주세요.");
+      // alert("마이크 연결에 실패했습니다. 마이크 권한을 허용해주세요.");
+      alert(`🚨 마이크 실패 진짜 원인:\n${err.message || JSON.stringify(err)}`);
       // await stopAndSendBrainDump(); // 에러 나면 UI 깔끔하게 리셋
     }
   };
