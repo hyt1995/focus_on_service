@@ -21,6 +21,7 @@ import DailyView from "@/components/DailyView";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import BrainDumpModal from "@/components/BrainDumpModal"; // 상단에 추가
+// import TimeReceiptView from "@/components/TimeReceiptView";
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -79,6 +80,7 @@ function MainDashboard({
 
   // 2. 상태 변경 및 탭 강제 견인 함수
   const updateTaskStatus = async (id: number | string, newStatus: string) => {
+    console.log("1111111111111111 ::::", id, newStatus);
     setTasks(
       tasks.map(t =>
         String(t.id) === String(id) ? { ...t, status: newStatus } : t
@@ -145,6 +147,8 @@ function MainDashboard({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // 🔥 자식(대시보드)으로부터 마감 시간을 받아올 공간 마련 (기본값 18:00)
+  const [todayEndTime, setTodayEndTime] = useState("18:00");
 
   useEffect(() => {
     syncDailyTasks(); // 🔥 앱 켜질 때 동기화 함수부터 무조건 실행! (하루 1번만 작동함)
@@ -215,6 +219,7 @@ function MainDashboard({
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
     const data = await res.json();
+    console.log("222222222222222222 ::::", data);
     setTasks(data);
     const runningTask = data.find((t: Task) => t.isActive === true);
     if (runningTask) setActiveTaskId(runningTask.id);
@@ -312,6 +317,7 @@ function MainDashboard({
       body: JSON.stringify(newTask),
     });
     if (res.ok) {
+      console.log("33333333333333333333333333 ::::", tasks, newTask);
       setTasks([...tasks, newTask]);
       setIsModalOpen(false);
     }
@@ -322,6 +328,7 @@ function MainDashboard({
     newTitle: string,
     newDesc: string
   ) => {
+    console.log("44444444444444444444444444444 ::::", id, newTitle, newDesc);
     setTasks(
       tasks.map(t =>
         String(t.id) === String(id)
@@ -393,6 +400,7 @@ function MainDashboard({
     setActiveTaskId(isActive ? task.id : null);
 
     // 🌟 핵심 수술: 상태 업데이트와 동시에 배열 재정렬 수행
+    console.log("55555555555555555555555555555555555 ::::", task);
     setTasks(prevTasks => {
       // 1. 해당 태스크의 상태를 업데이트한 새로운 배열 생성
       const updatedTasks = prevTasks.map(t =>
@@ -489,6 +497,7 @@ function MainDashboard({
 
       if (res.ok) {
         const updatedTasks = await res.json();
+        console.log("666666666666666666666666 ::::", updatedTasks);
         setTasks(updatedTasks);
         setAiUsageCount(prev => prev + 1);
 
@@ -514,7 +523,9 @@ function MainDashboard({
       method: "DELETE",
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
-    if (res.ok) setTasks(tasks.filter(t => t.id !== id));
+    if (res.ok) {
+      setTasks(tasks?.filter(t => t.id !== id));
+    }
   };
 
   const updateDeadline = async (id: number | string, newDeadline: string) => {
@@ -745,6 +756,159 @@ function MainDashboard({
   ).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
   const todaySchedules = schedules.filter(s => s.date === formattedToday);
 
+  // 화면 상태(currentView)에 따라 컴포넌트를 배분하는 함수
+  const renderCurrentView = () => {
+    if (currentView === "home") {
+      return (
+        <div className="w-full max-w-2xl mx-auto space-y-4">
+          {/* 특별 일정 카드 */}
+          {todaySchedules?.map(schedule => (
+            <div
+              key={schedule.id}
+              className="relative bg-blue-50/40 border-[1.5px] border-[#007AFF] p-6 rounded-[24px] shadow-sm mb-4"
+            >
+              <span className="absolute -top-3 left-6 bg-[#007AFF] text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
+                🗓️ 오늘의 중요 일정
+              </span>
+              <div className="mb-4 pr-4">
+                <h3 className="text-lg font-bold text-gray-800 break-words">
+                  {schedule.title}
+                </h3>
+                {schedule.description && (
+                  <div className="mt-1">
+                    <p
+                      className={`text-sm text-gray-500 ${
+                        expandedSpecialIds.includes(schedule.id)
+                          ? ""
+                          : "line-clamp-1 truncate"
+                      }`}
+                    >
+                      {schedule.description}
+                    </p>
+                    <button
+                      onClick={() => toggleSpecialDesc(schedule.id)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-[#007AFF] mt-1 bg-white px-2 py-0.5 rounded-full border border-blue-100 hover:bg-blue-100 transition-colors"
+                    >
+                      {expandedSpecialIds.includes(schedule.id)
+                        ? "접기"
+                        : "자세히 보기"}{" "}
+                      {expandedSpecialIds.includes(schedule.id) ? (
+                        <ChevronUp size={12} />
+                      ) : (
+                        <ChevronDown size={12} />
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold px-1 text-gray-500">
+                <span className="text-left w-1/3">
+                  {schedule.startTime !== "-"
+                    ? schedule.startTime
+                    : "시간 미정"}
+                </span>
+                <span className="text-center w-1/3 font-light">~</span>
+                <span className="text-right w-1/3 text-[#007AFF]">
+                  {schedule.endTime} (마감)
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {/* 🔥 중복 매핑 제거 & 비어있을 때 방어 로직 추가 */}
+          {tasks?.length === 0 ? (
+            <div className="text-center text-gray-400 py-10 font-bold">
+              우측 하단의 플러스 버튼을 눌러 일정을 추가하세요.
+            </div>
+          ) : (
+            <>
+              {/* 3단 탭 UI */}
+              <div className="flex justify-center gap-2 my-6">
+                {[
+                  { id: "todo", label: "진행 전" },
+                  { id: "in-progress", label: "진행 중" },
+                  { id: "done", label: "완료" },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300
+                          ${
+                            activeTab === tab.id
+                              ? "bg-[#1C1C1E] text-white shadow-md"
+                              : "bg-white text-gray-400 border border-gray-200 hover:bg-gray-50"
+                          }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* 탭 상태에 맞는 카드만 단 1번 렌더링 */}
+              {(() => {
+                const filteredTasks = tasks?.filter(
+                  t => (t.status || "todo") === activeTab
+                );
+
+                return filteredTasks.length > 0 ? (
+                  filteredTasks.map((task, index) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      activeTaskId={activeTaskId}
+                      currentTime={now}
+                      getRealtimeProgress={getRealtimeProgress}
+                      onToggleFocus={toggleFocus}
+                      onDelete={deleteTask}
+                      onUpdateDeadline={updateDeadline}
+                      onUpdateCard={updateCardDetails}
+                      onUpdateStatus={updateTaskStatus}
+                      dragItemRef={dragItem}
+                      dragOverItemRef={dragOverItem}
+                      onSort={handleSort}
+                      isFaded={index >= 5}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center text-gray-400 py-10 font-bold">
+                    해당 상태의 일정이 없습니다.
+                  </div>
+                );
+              })()}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    if (currentView === "daily") {
+      return (
+        <div className="w-full max-w-2xl mx-auto">
+          <DailyView userName={userName} />
+        </div>
+      );
+    }
+
+    // 🎯 철수야가 원했던 타임 레시피(영수증) 화면 추가!
+    if (currentView === "receipt") {
+      // return <TimeReceiptView />;
+      return <div></div>;
+    }
+
+    // 기본값 (calendar)
+    return (
+      <div className="w-full max-w-4xl mx-auto">
+        <CalendarView
+          schedules={schedules}
+          onSaveSchedule={handleSaveSchedule}
+          onDeleteSchedule={handleDeleteSchedule}
+          onUpdateSchedule={handleUpdateSchedule}
+        />
+      </div>
+    );
+  };
+
   // --- 렌더링 영역 ---
   return (
     <div className="flex h-screen bg-[#F9F9FB] text-[#1C1C1E] overflow-hidden">
@@ -753,6 +917,7 @@ function MainDashboard({
         setCurrentView={setCurrentView}
         isMobileOpen={isSidebarOpen}
         setIsMobileOpen={setIsSidebarOpen}
+        closingTime={todayEndTime}
       />
 
       <main className="flex-1 flex flex-col relative overflow-hidden">
@@ -767,146 +932,14 @@ function MainDashboard({
             <TodayTimeboxDashboard
               userName={userName}
               todaySchedules={todaySchedules}
+              onEndTimeLoad={setTodayEndTime}
             />
           </div>
         </header>
 
         <section className="flex-1 overflow-y-auto p-4 lg:p-10 space-y-4 pb-40">
-          {currentView === "home" ? (
-            <div className="w-full max-w-2xl mx-auto space-y-4">
-              {/* 특별 일정 카드 */}
-              {todaySchedules?.map(schedule => (
-                <div
-                  key={schedule.id}
-                  className="relative bg-blue-50/40 border-[1.5px] border-[#007AFF] p-6 rounded-[24px] shadow-sm mb-4"
-                >
-                  <span className="absolute -top-3 left-6 bg-[#007AFF] text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
-                    🗓️ 오늘의 중요 일정
-                  </span>
-                  <div className="mb-4 pr-4">
-                    <h3 className="text-lg font-bold text-gray-800 break-words">
-                      {schedule.title}
-                    </h3>
-                    {schedule.description && (
-                      <div className="mt-1">
-                        <p
-                          className={`text-sm text-gray-500 ${
-                            expandedSpecialIds.includes(schedule.id)
-                              ? ""
-                              : "line-clamp-1 truncate"
-                          }`}
-                        >
-                          {schedule.description}
-                        </p>
-                        <button
-                          onClick={() => toggleSpecialDesc(schedule.id)}
-                          className="flex items-center gap-1 text-[10px] font-bold text-[#007AFF] mt-1 bg-white px-2 py-0.5 rounded-full border border-blue-100 hover:bg-blue-100 transition-colors"
-                        >
-                          {expandedSpecialIds.includes(schedule.id)
-                            ? "접기"
-                            : "자세히 보기"}{" "}
-                          {expandedSpecialIds.includes(schedule.id) ? (
-                            <ChevronUp size={12} />
-                          ) : (
-                            <ChevronDown size={12} />
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex justify-between items-center text-xs font-bold px-1 text-gray-500">
-                    <span className="text-left w-1/3">
-                      {schedule.startTime !== "-"
-                        ? schedule.startTime
-                        : "시간 미정"}
-                    </span>
-                    <span className="text-center w-1/3 font-light">~</span>
-                    <span className="text-right w-1/3 text-[#007AFF]">
-                      {schedule.endTime} (마감)
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {/* 🔥 중복 매핑 제거 & 비어있을 때 방어 로직 추가 */}
-              {tasks?.length === 0 ? (
-                <div className="text-center text-gray-400 py-10 font-bold">
-                  우측 하단의 플러스 버튼을 눌러 일정을 추가하세요.
-                </div>
-              ) : (
-                <>
-                  {/* 3단 탭 UI */}
-                  <div className="flex justify-center gap-2 my-6">
-                    {[
-                      { id: "todo", label: "진행 전" },
-                      { id: "in-progress", label: "진행 중" },
-                      { id: "done", label: "완료" },
-                    ].map(tab => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300
-                              ${
-                                activeTab === tab.id
-                                  ? "bg-[#1C1C1E] text-white shadow-md"
-                                  : "bg-white text-gray-400 border border-gray-200 hover:bg-gray-50"
-                              }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* 탭 상태에 맞는 카드만 단 1번 렌더링 */}
-                  {(() => {
-                    const filteredTasks = tasks.filter(
-                      t => (t.status || "todo") === activeTab
-                    );
-
-                    return filteredTasks.length > 0 ? (
-                      filteredTasks.map((task, index) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          index={index}
-                          activeTaskId={activeTaskId}
-                          currentTime={now}
-                          getRealtimeProgress={getRealtimeProgress}
-                          onToggleFocus={toggleFocus}
-                          onDelete={deleteTask}
-                          onUpdateDeadline={updateDeadline}
-                          onUpdateCard={updateCardDetails}
-                          onUpdateStatus={updateTaskStatus}
-                          dragItemRef={dragItem}
-                          dragOverItemRef={dragOverItem}
-                          onSort={handleSort}
-                          isFaded={index >= 5}
-                        />
-                      ))
-                    ) : (
-                      <div className="text-center text-gray-400 py-10 font-bold">
-                        해당 상태의 일정이 없습니다.
-                      </div>
-                    );
-                  })()}
-                </>
-              )}
-            </div>
-          ) : currentView === "daily" ? (
-            // 🔥 여기에 우리가 방금 만든 컴포넌트를 끼워 넣는다!
-            <div className="w-full max-w-2xl mx-auto">
-              <DailyView userName={userName} />
-            </div>
-          ) : (
-            <div className="w-full max-w-4xl mx-auto">
-              <CalendarView
-                schedules={schedules}
-                onSaveSchedule={handleSaveSchedule}
-                onDeleteSchedule={handleDeleteSchedule}
-                onUpdateSchedule={handleUpdateSchedule}
-              />
-            </div>
-          )}
+          {/* 🔥 기능 누락 없이 모든 화면이 분기되어 렌더링됩니다 */}
+          {renderCurrentView()}
         </section>
 
         {/* 모듈화된 브레인덤프 모달 */}
@@ -924,13 +957,13 @@ function MainDashboard({
         )}
 
         <div className="fixed bottom-8 right-6 lg:right-10 flex flex-col items-center bg-white/80 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white/40 z-20 gap-3">
-          <button
+          {/* <button
             onClick={handleResetUsage}
             className="p-1.5 text-[10px] font-bold text-gray-400 bg-gray-100 rounded-full hover:bg-gray-200 hover:text-red-500 transition-colors"
             title="사용량 리셋 (개발자용)"
           >
             ↻ 리셋
-          </button>
+          </button> */}
           <button
             onClick={() => setIsModalOpen(true)}
             className="p-3.5 rounded-full border-[2.5px] border-[#007AFF] text-[#007AFF] bg-white hover:bg-blue-50 transition-all hover:scale-105 shadow-sm flex items-center justify-center"

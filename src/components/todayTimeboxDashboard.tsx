@@ -4,11 +4,14 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 interface Props {
   userName: string;
   todaySchedules: any[]; // page.tsx에서 오늘 일정만 걸러서 받아옵니다.
+  // 🔥 1. 부모에게 마감시간을 전달해줄 콜백 함수 추가
+  onEndTimeLoad?: (endTime: string) => void;
 }
 
 const TodayTimeboxDashboard: React.FC<Props> = ({
   userName,
   todaySchedules,
+  onEndTimeLoad,
 }) => {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("18:00");
@@ -37,7 +40,10 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
       .then(res => res.json())
       .then(data => {
         if (data.startTime) setStartTime(data.startTime);
-        if (data.endTime) setEndTime(data.endTime);
+        if (data.endTime) {
+          setEndTime(data.endTime);
+          if (onEndTimeLoad) onEndTimeLoad(data.endTime);
+        }
       })
       .catch(() => {});
   }, [userName]);
@@ -53,6 +59,8 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
       },
       body: JSON.stringify({ startTime, endTime }),
     });
+    // 🔥 4. 사용자가 직접 시간을 수정(저장)했을 때도 부모에게 새로 변경된 시간 전달!
+    if (onEndTimeLoad) onEndTimeLoad(endTime);
   };
 
   const getTimeStamp = (timeStr: string) => {

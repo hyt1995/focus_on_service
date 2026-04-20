@@ -1,12 +1,17 @@
 // src/components/Sidebar.tsx
 import React from "react";
 import { Menu, Home, Calendar, X, Repeat } from "lucide-react";
+// 상단에 Link 모듈이 없으면 추가해 줘
+import Link from "next/link";
+// 필요한 아이콘도 추가 (lucide-react를 쓴다면)
+import { FileText } from "lucide-react";
 
 interface Props {
   currentView: string;
   setCurrentView: (view: string) => void;
   isMobileOpen: boolean;
   setIsMobileOpen: (isOpen: boolean) => void;
+  closingTime?: any;
 }
 
 export default function Sidebar({
@@ -14,7 +19,36 @@ export default function Sidebar({
   setCurrentView,
   isMobileOpen,
   setIsMobileOpen,
+  closingTime,
 }: Props) {
+  // 🎯 [여기 추가!] 마감 시간을 체크하는 잠금(Lock) 함수
+  const handleReceiptClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // 마감 시간 데이터가 혹시라도 아직 안 넘어왔다면 기본값 처리
+    const timeStr = closingTime || "18:00";
+
+    // "18:00" 문자열을 쪼개서 오늘 날짜의 시간으로 변환
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const now = new Date();
+    const targetTime = new Date();
+    targetTime.setHours(hours, minutes, 0, 0);
+
+    // 디버깅용 (필요 없으면 지워도 됨)
+    console.log("현재 시간:", now.toLocaleTimeString());
+    console.log("화면의 마감 시간:", targetTime.toLocaleTimeString());
+
+    // 마감 시간 전이면 이동 차단!
+    if (now < targetTime) {
+      e.preventDefault(); // 🔥 라우팅(화면 이동) 즉시 차단
+      alert(
+        `오늘 하루가 끝나지 않았습니다. (마감: ${timeStr})\n마감 시간 이후에 영수증을 발급할 수 있습니다.`
+      );
+      return;
+    }
+
+    // 조건 통과 시: e.preventDefault()를 안 했으므로 Link 태그가 자연스럽게 이동시켜 줌
+    if (setIsMobileOpen) setIsMobileOpen(false); // 모바일 메뉴만 살짝 닫아줌
+  };
+
   return (
     <>
       {/* PC 사이드바 */}
@@ -56,6 +90,31 @@ export default function Sidebar({
           >
             <Repeat className="w-5 h-5" /> <span>Daily 루틴</span>
           </button>
+          <button
+            onClick={() => {
+              setCurrentView("receipt");
+              // 모바일용 사이드바 닫기 함수가 있다면 추가 (없으면 빼도 됨)
+              if (setIsMobileOpen) setIsMobileOpen(false);
+            }}
+            className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
+              currentView === "receipt"
+                ? "bg-blue-50 text-[#007AFF] font-bold"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Link
+              href="/time-receipt"
+              onClick={handleReceiptClick} // 방금 만든 함수 연결
+              className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
+                currentView === "receipt"
+                  ? "bg-blue-50 text-[#007AFF] font-bold"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <FileText className="w-5 h-5" />
+              <span className="font-bold">타임 레시피</span>
+            </Link>
+          </button>
         </nav>
       </aside>
 
@@ -74,44 +133,71 @@ export default function Sidebar({
               </button>
             </div>
             <div className="p-4 space-y-2">
+              <Link href="/">
+                <button
+                  onClick={() => {
+                    setCurrentView("home");
+                    setIsMobileOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
+                    currentView === "home"
+                      ? "bg-[#007AFF] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  🏠 홈 (Today's Focus)
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentView("calendar");
+                    setIsMobileOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
+                    currentView === "calendar"
+                      ? "bg-[#007AFF] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  📅 달력 및 일정 관리
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentView("daily");
+                    setIsMobileOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
+                    currentView === "daily"
+                      ? "bg-[#007AFF] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  🔁 데일리 루틴 관리
+                </button>
+              </Link>
               <button
                 onClick={() => {
-                  setCurrentView("home");
-                  setIsMobileOpen(false);
+                  setCurrentView("receipt");
+                  // 모바일용 사이드바 닫기 함수가 있다면 추가 (없으면 빼도 됨)
+                  if (setIsMobileOpen) setIsMobileOpen(false);
                 }}
-                className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
-                  currentView === "home"
-                    ? "bg-[#007AFF] text-white"
+                className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
+                  currentView === "receipt"
+                    ? "bg-blue-50 text-[#007AFF] font-bold"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                🏠 홈 (Today's Focus)
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentView("calendar");
-                  setIsMobileOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
-                  currentView === "calendar"
-                    ? "bg-[#007AFF] text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                📅 달력 및 일정 관리
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentView("daily");
-                  setIsMobileOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
-                  currentView === "daily"
-                    ? "bg-[#007AFF] text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                🔁 데일리 루틴 관리
+                <Link
+                  href="/time-receipt"
+                  onClick={handleReceiptClick} // 방금 만든 함수 연결
+                  className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
+                    currentView === "receipt"
+                      ? "bg-blue-50 text-[#007AFF] font-bold"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {/* 아이콘이 있다면 유지, 없으면 텍스트만 둬도 됨 */}
+                  <span className="font-bold">타임 레시피</span>
+                </Link>
               </button>
             </div>
           </div>
