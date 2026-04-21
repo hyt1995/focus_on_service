@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -11,15 +11,19 @@
     "build:app": "cross-env APP_ENV=prod cap sync && npx cap open android"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^2.4.7",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "@google/generative-ai": "^0.24.1",
     "firebase": "^12.10.0",
+    "fix-webm-duration": "^1.0.6",
+    "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "react": "19.2.3",
+    "react-barcode": "^1.6.1",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
