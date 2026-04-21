@@ -1,5 +1,47 @@
 @import "tailwindcss";
 
+/* 2. 폰트 파일 불러오기 (@font-face) */
+@font-face {
+  font-family: "D2Coding";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_three@1.0/D2Coding.woff")
+    format("woff");
+}
+@font-face {
+  font-family: "Galmuri11";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/Galmuri11.woff")
+    format("woff");
+}
+@font-face {
+  font-family: "NeoDunggeunmo";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/NeoDunggeunmo.woff")
+    format("woff");
+}
+@font-face {
+  font-family: "S-CoreDream";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-3Light.woff")
+    format("woff");
+}
+@font-face {
+  font-family: "GmarketSans";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff")
+    format("woff");
+}
+@font-face {
+  font-family: "EliceDigitalBaeum";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_220508@1.0/EliceDigitalBaeum_Bold.woff")
+    format("woff");
+}
+@font-face {
+  font-family: "DOSGothic";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_eight@1.0/DOSGothic.woff")
+    format("woff");
+}
+@font-face {
+  font-family: "GownDodum";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GownDodum.woff")
+    format("woff");
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -23,4 +65,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 4. Tailwind v4 테마 설정 (여기에 우리가 쓸 폰트 이름들을 다 등록했어!) */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* 커스텀 영수증 폰트 10종 등록 */
+  --font-ibm: "IBM Plex Sans KR", sans-serif;
+  --font-d2: "D2Coding", monospace;
+  --font-galmuri: "Galmuri11", monospace;
+  --font-neo: "NeoDunggeunmo", monospace;
+  --font-pretend-mono: "Pretendard Mono", monospace;
+  --font-score: "S-CoreDream", sans-serif;
+  --font-gmarket: "GmarketSans", sans-serif;
+  --font-elice: "EliceDigitalBaeum", sans-serif;
+  --font-dos: "DOSGothic", monospace;
+  --font-gown: "GownDodum", sans-serif;
 }
