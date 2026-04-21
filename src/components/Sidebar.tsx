@@ -60,36 +60,38 @@ export default function Sidebar({
           </h1>
         </div>
         <nav className="space-y-2 flex-1 text-[#8E8E93]">
-          <button
-            onClick={() => setCurrentView("home")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-              currentView === "home"
-                ? "bg-blue-50 text-[#007AFF]"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <Home className="w-5 h-5" /> <span>Home</span>
-          </button>
-          <button
-            onClick={() => setCurrentView("calendar")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-              currentView === "calendar"
-                ? "bg-blue-50 text-[#007AFF]"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <Calendar className="w-5 h-5" /> <span>Calendar</span>
-          </button>
-          <button
-            onClick={() => setCurrentView("daily")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-              currentView === "daily"
-                ? "bg-blue-50 text-[#007AFF]"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <Repeat className="w-5 h-5" /> <span>Daily 루틴</span>
-          </button>
+          <Link href="/">
+            <button
+              onClick={() => setCurrentView("home")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+                currentView === "home"
+                  ? "bg-blue-50 text-[#007AFF]"
+                  : "hover:bg-gray-50"
+              }`}
+            >
+              <Home className="w-5 h-5" /> <span>Home</span>
+            </button>
+            <button
+              onClick={() => setCurrentView("calendar")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+                currentView === "calendar"
+                  ? "bg-blue-50 text-[#007AFF]"
+                  : "hover:bg-gray-50"
+              }`}
+            >
+              <Calendar className="w-5 h-5" /> <span>Calendar</span>
+            </button>
+            <button
+              onClick={() => setCurrentView("daily")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+                currentView === "daily"
+                  ? "bg-blue-50 text-[#007AFF]"
+                  : "hover:bg-gray-50"
+              }`}
+            >
+              <Repeat className="w-5 h-5" /> <span>Daily 루틴</span>
+            </button>
+          </Link>
           <button
             onClick={() => {
               setCurrentView("receipt");
