@@ -1,25 +1,38 @@
-// /src/app/api/calendar/route.ts
-
+// src/app/api/calendar/route.ts
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase"; // firebase 설정 경로 확인
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  getDocs,
+  doc,
+  writeBatch,
+  query,
+  orderBy,
+} from "firebase/firestore";
+
+// 🔥 1. 캐싱 절대 금지 (새로고침 시 무조건 DB 찌름)
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const userName = request.headers.get("x-user-name");
   if (!userName)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const decodedName = decodeURIComponent(userName);
+
   try {
-    const docRef = doc(db, "users_calendar", decodedName);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists() && docSnap.data().schedules) {
-      return NextResponse.json(docSnap.data().schedules);
-    } else {
-      return NextResponse.json([]); // 일정이 없으면 빈 배열 반환
-    }
+    // 🌟 2. 새로운 방(calendar_events)에서 날짜순으로 가져옴
+    const colRef = collection(db, "users", decodedName, "calendar_events");
+    const q = query(colRef, orderBy("date", "asc"));
+    const querySnapshot = await getDocs(q);
+
+    const schedules = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    return NextResponse.json(schedules);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to load" }, { status: 500 });
+    console.error("달력 가져오기 에러:", error);
+    return NextResponse.json([]);
   }
 }
 
@@ -27,15 +40,36 @@ export async function PUT(request: Request) {
   const userName = request.headers.get("x-user-name");
   if (!userName)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const decodedName = decodeURIComponent(userName);
   const { schedules } = await request.json();
 
   try {
-    const docRef = doc(db, "users_calendar", decodedName);
-    await setDoc(docRef, { schedules }, { merge: true });
+    const colRef = collection(db, "users", decodedName, "calendar_events");
+
+    // 🌟 3. 서브 컬렉션 Batch 업서트 (통신 비용 최소화)
+    const snapshot = await getDocs(colRef);
+    const batch = writeBatch(db);
+
+    // a. 기존 달력 방에 있던 데이터 싹 다 지우기 (초기화)
+    snapshot.docs.forEach(docSnap => {
+      batch.delete(docSnap.ref);
+    });
+
+    // b. 프론트에서 넘어온 새로운 배열 데이터를 하나씩 예쁘게 문서로 생성
+    schedules.forEach((schedule: any) => {
+      const docRef = doc(colRef, schedule.id);
+      batch.set(docRef, schedule);
+    });
+
+    // c. 이 모든 작업을 단 1번의 통신으로 서버에 반영!
+    await batch.commit();
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+    console.error("달력 저장 에러:", error);
+    return NextResponse.json(
+      { error: "Failed to save schedules" },
+      { status: 500 }
+    );
   }
 }

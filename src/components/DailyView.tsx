@@ -75,7 +75,12 @@ export default function DailyView({ userName }: { userName: string }) {
     if (!confirm("이 데일리 루틴을 삭제하시겠습니까?")) return;
     setRoutines(routines.filter(r => r.id !== id));
     try {
-      await fetch(`/api/daily/template?id=${id}`, {
+      // 🔥 수정: baseUrl 적용
+      const apiUrl = baseUrl
+        ? `${baseUrl}/api/daily/template?id=${id}`
+        : `/api/daily/template?id=${id}`;
+
+      await fetch(apiUrl, {
         method: "DELETE",
         headers: { "x-user-name": encodeURIComponent(userName) },
       });

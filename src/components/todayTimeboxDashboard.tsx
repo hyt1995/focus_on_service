@@ -56,7 +56,7 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
         if (onTimeLoad) onTimeLoad(fetchedStart, fetchedEnd);
       })
       .catch(() => {});
-  }, [userName]);
+  }, [userName, isPremium]);
 
   const saveSchedule = async () => {
     setIsEditing(false);

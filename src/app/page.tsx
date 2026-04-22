@@ -155,14 +155,22 @@ function MainDashboard({
   const [todayStartTime, setTodayStartTime] = useState("09:00");
   const [todayEndTime, setTodayEndTime] = useState("18:00");
 
-  // 무료 유저 과금 방지를 위한 방어 코드로 대체
-  // useEffect(() => {
-  //   syncDailyTasks(); // 🔥 앱 켜질 때 동기화 함수부터 무조건 실행! (하루 1번만 작동함)
-  //   fetchTasks();
-  //   fetchSchedules();
-  //   // initSpeechRecognition();
-  //   fetchUsage();
-  // }, []);
+  // 1. 세팅 가져오는 함수 생성
+  const fetchSettings = async () => {
+    try {
+      const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
+      const res = await fetch(apiUrl, {
+        headers: { "x-user-name": encodeURIComponent(userName) },
+      });
+      const data = await res.json();
+      if (data.startTime && data.endTime) {
+        setTodayStartTime(data.startTime);
+        setTodayEndTime(data.endTime);
+      }
+    } catch (err) {
+      console.error("세팅 로드 실패:", err);
+    }
+  };
 
   // 🌟 1. userName이 세팅된 후에만 프리미엄 확인을 돌도록 의존성 배열 추가!
   useEffect(() => {
@@ -178,7 +186,6 @@ function MainDashboard({
         headers: { "x-user-name": encodeURIComponent(userName) },
       });
       const data = await res.json();
-      console.log("22222222222222222222 ::::", data);
 
       setIsPremium(data.isPremium);
       setAiUsageCount(data.count);
@@ -188,6 +195,7 @@ function MainDashboard({
         syncDailyTasks();
         fetchTasks();
         fetchSchedules();
+        fetchSettings(); // 🌟 여기서 세팅값(마감시간)도 불러오기!
       } else {
         console.log("🚀 체험판 모드 진입: 서버 DB 통신이 차단되었습니다.");
       }
@@ -499,8 +507,8 @@ function MainDashboard({
   };
 
   // 🎙️ 3. 안전하게 종료하고 서버로 텍스트 보내기
+  // 🎙️ 3. 안전하게 종료하고 서버로 텍스트 보내기
   const stopAndSendBrainDump = async () => {
-    // 하드웨어 마이크 & 소켓 숨통 끊기
     if (
       mediaRecorderRef.current &&
       mediaRecorderRef.current.state !== "inactive"
@@ -514,13 +522,12 @@ function MainDashboard({
     setIsBrainDumping(false);
     isBrainDumpingRef.current = false;
     setBrainDumpTimeLeft(null);
-    setPrepCount(null); // 혹시 카운트다운 중에 껐다면 초기화
+    setPrepCount(null);
 
     const finalText = recognizedTextRef.current;
-    if (!finalText.trim()) return; // 말 안 했으면 그냥 종료
+    if (!finalText.trim()) return;
 
     setIsAiProcessing(true);
-
     try {
       const apiUrl = baseUrl ? `${baseUrl}/api/braindump` : "/api/braindump";
       const res = await fetch(apiUrl, {
@@ -534,23 +541,25 @@ function MainDashboard({
 
       if (res.status === 403) {
         alert("오늘 무료 제공량(하루 2회)을 모두 소진했습니다.");
-        setAiUsageCount(2); // 버튼 회색으로 잠그기
+        setAiUsageCount(2);
         setIsAiProcessing(false);
         return;
       }
 
       if (res.ok) {
-        const updatedTasks = await res.json();
-        setTasks(updatedTasks);
+        // 🌟 수정: 백엔드가 스나이퍼 타겟 딱 1개만 줌
+        const { sniperTask, isNewTask } = await res.json();
+
+        // 새로 생성된 거라면 내 화면(상태)의 태스크 목록에 추가
+        if (isNewTask) {
+          setTasks(prev => [sniperTask, ...prev]);
+        }
+
         setAiUsageCount(prev => prev + 1);
 
-        const topPriorityTask =
-          updatedTasks.find((t: Task) => t.status === "todo") ||
-          updatedTasks[0];
-        if (topPriorityTask) {
-          setSniperTask(topPriorityTask);
-          setShowSniperModal(true);
-        }
+        // 🌟 바로 스나이퍼 모달로 직행!
+        setSniperTask(sniperTask);
+        setShowSniperModal(true);
       }
     } catch (error) {
       console.error("Brain dump error:", error);

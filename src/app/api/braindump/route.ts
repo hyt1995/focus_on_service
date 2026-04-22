@@ -1,7 +1,6 @@
-// /src/app/api/braindump/route.ts
-
+// src/app/api/braindump/route.ts
 import { NextResponse } from "next/server";
-import { getAllTasks, reorderTasks } from "@/lib/dataService";
+import { getAllTasks, saveTask } from "@/lib/dataService";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -11,6 +10,12 @@ if (!process.env.GEMINI_API_KEY) {
 }
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+function getTodayKST() {
+  const now = new Date();
+  const kstTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kstTime.toISOString().split("T")[0];
+}
+
 export async function POST(request: Request) {
   try {
     const rawUserName = request.headers.get("x-user-name");
@@ -19,13 +24,9 @@ export async function POST(request: Request) {
         { error: "로그인이 필요합니다." },
         { status: 401 }
       );
-
     const userName = decodeURIComponent(rawUserName);
     const { text } = await request.json();
-
-    const now = new Date();
-    const kstTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-    const today = kstTime.toISOString().split("T")[0];
+    const today = getTodayKST();
 
     if (!text || text.trim() === "") {
       return NextResponse.json(
@@ -34,15 +35,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const usageRef = doc(db, "users_usage", userName);
-    const usageSnap = await getDoc(usageRef);
+    // 🌟 1. 사용량 체크 (users 메인 문서 하나만 찌름)
+    const userRef = doc(db, "users", userName);
+    const userSnap = await getDoc(userRef);
     let currentCount = 0;
     let isPremium = false;
 
-    if (usageSnap.exists()) {
-      const data = usageSnap.data();
+    if (userSnap.exists()) {
+      const data = userSnap.data();
       isPremium = data.isPremium || false;
-      if (data.date === today) currentCount = data.count;
+      if (data.aiUsage && data.aiUsage.date === today) {
+        currentCount = data.aiUsage.count;
+      }
     }
 
     if (!isPremium && currentCount >= 2) {
@@ -52,17 +56,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. 기존 데이터 가져오기
+    // 🌟 2. 기존 데이터 가져오기 및 AI용 번호표 세팅
     const allTasks = await getAllTasks(userName);
     const activeTasks = allTasks.filter((t: any) => t.status !== "done");
-    const doneTasks = allTasks.filter((t: any) => t.status === "done");
 
-    // 🌟 [핵심 수술] AI가 헷갈리지 않게 짧은 임시 번호표(refId) 부여
     const taskMap = new Map();
     const promptTasks = activeTasks.map((t: any, idx: number) => {
       const refId = `T${idx}`;
-      taskMap.set(refId, t); // 원본은 금고(Map)에 안전하게 보관
-      return { refId, title: t.title }; // AI한테는 번호표와 제목만 줌
+      taskMap.set(refId, t);
+      return { refId, title: t.title, description: t.description || "" };
     });
 
     const model = genAI.getGenerativeModel({
@@ -70,82 +72,58 @@ export async function POST(request: Request) {
       generationConfig: { responseMimeType: "application/json" },
     });
 
-    // 🌟 프롬프트 극단적 단순화
+    // 🌟 3. 스나이퍼 로직 전용 프롬프트 (딱 1개만 리턴)
     const prompt = `
-      사용자의 기존 업무 리스트와 새로운 음성 지시를 보고, 지금 당장 먼저 해야 할 순서대로 배열을 재정렬해라.
-
-      [기존 업무 리스트]:
-      ${JSON.stringify(promptTasks)}
-
-      [새로운 음성 지시]: 
-      "${text}"
-
-      [지시사항]
-      1. 기존 업무는 "refId" 값만 반환해라.
-      2. 완전히 새로운 업무가 추가되어야 한다면 "refId"를 "NEW"로 하고 title, description을 작성해라.
-      3. 가장 시급한 것이 배열 맨 위에 오게 해라.
-      4. JSON 형식으로만 응답해라.
-
-      [응답 예시]
-      [
-        { "refId": "T1" },
-        { "refId": "T0" },
-        { "refId": "NEW", "title": "새로운 음성 업무", "description": "내용 요약" }
-      ]
+      사용자의 기존 업무 리스트와 새로운 음성 지시를 분석해라.
+      [기존 업무 리스트]: ${JSON.stringify(promptTasks)}
+      [새로운 음성 지시]: "${text}"
+      
+      [지시사항 - 스나이퍼 모드]
+      사용자가 "지금 당장 해야 할 단 하나의 최우선 과제"를 찾아라.
+      1. 기존 업무 중에 있다면 그 업무의 "refId"만 반환해라. (예: {"refId": "T1"})
+      2. 기존 업무에 없고 완전히 새로운 업무를 해야 한다면 "refId"를 "NEW"로 하고 title, description을 작성해라. (예: {"refId": "NEW", "title": "...", "description": "..."})
+      3. 오직 단 1개의 JSON 객체만 반환해라. 배열 형태가 아니어야 한다.
     `;
 
     const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    let parsedData = JSON.parse(result.response.text());
 
-    let parsedTasks;
-    try {
-      parsedTasks = JSON.parse(responseText);
-    } catch (e) {
-      return NextResponse.json({ error: "AI 응답 파싱 실패" }, { status: 500 });
+    let sniperTask;
+    let isNewTask = false;
+
+    // 🌟 4. 결과 분석 및 DB 처리 (극강의 최적화)
+    if (parsedData.refId === "NEW") {
+      isNewTask = true;
+      const newTaskObj = {
+        id: Date.now(),
+        title: parsedData.title || "새로운 몰입 업무",
+        description: parsedData.description || "",
+        status: "todo",
+        time: "10 min",
+        progress: 0,
+        deadline: "D-Day",
+        createdAt: today,
+        order: 0, // 맨 위로 올리기
+      };
+      // 새로 만들었을 때만 DB에 1건 추가!
+      sniperTask = await saveTask(userName, newTaskObj);
+    } else {
+      // 기존 일정 중 하나를 선택했으면 DB 갱신 없이 그냥 꺼내기만 함!
+      sniperTask = taskMap.get(parsedData.refId);
+      if (!sniperTask) throw new Error("AI가 잘못된 ID를 반환했습니다.");
     }
 
-    // 🌟 [핵심 수술 2] 번호표를 보고 금고에서 원본 데이터를 꺼내서 재조립
-    const finalActiveTasks: any[] = [];
-
-    parsedTasks.forEach((item: any, index: number) => {
-      if (item.refId === "NEW") {
-        // 새 업무 추가
-        finalActiveTasks.push({
-          id: Date.now() + index,
-          title: item.title || "새 업무",
-          description: item.description || "",
-          status: "todo",
-          time: "10 min",
-          progress: 0,
-          deadline: "D-Day",
-          createdAt: today,
-        });
-      } else {
-        // 기존 업무 원본 복원 (데이터 변조 확률 0%)
-        const original = taskMap.get(item.refId);
-        if (original) {
-          finalActiveTasks.push(original);
-          taskMap.delete(item.refId); // 꺼낸 건 금고에서 지움
-        }
-      }
-    });
-
-    // AI가 실수로 누락한 원본이 있다면 맨 밑에 붙여줌
-    taskMap.forEach(original => {
-      finalActiveTasks.push(original);
-    });
-
-    // 완료된 데이터랑 합쳐서 저장
-    const finalTasks = [...finalActiveTasks, ...doneTasks];
-
+    // 🌟 5. 카운트 1 올리기 (merge: true로 기존 세팅 보호)
     await setDoc(
-      usageRef,
-      { date: today, count: currentCount + 1, isPremium: isPremium },
+      userRef,
+      {
+        aiUsage: { date: today, count: currentCount + 1 },
+      },
       { merge: true }
     );
 
-    const updatedTasks = await reorderTasks(userName, finalTasks);
-    return NextResponse.json(updatedTasks);
+    // 프론트엔드로 스나이퍼가 픽한 단 1개의 태스크와 신규 여부만 전달
+    return NextResponse.json({ sniperTask, isNewTask });
   } catch (error) {
     console.error("Brain Dump Error:", error);
     return NextResponse.json({ error: "서버 처리 실패" }, { status: 500 });
