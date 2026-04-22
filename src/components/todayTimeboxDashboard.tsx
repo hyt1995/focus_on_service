@@ -3,15 +3,17 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface Props {
   userName: string;
-  todaySchedules: any[]; // page.tsx에서 오늘 일정만 걸러서 받아옵니다.
-  // 🔥 1. 부모에게 마감시간을 전달해줄 콜백 함수 추가
-  onEndTimeLoad?: (endTime: string) => void;
+  todaySchedules: any[];
+  // 🌟 시작 시간과 마감 시간 모두 부모로 전달하도록 변경!
+  onTimeLoad?: (startTime: string, endTime: string) => void;
+  isPremium: boolean;
 }
 
 const TodayTimeboxDashboard: React.FC<Props> = ({
   userName,
   todaySchedules,
-  onEndTimeLoad,
+  onTimeLoad,
+  isPremium,
 }) => {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("18:00");
@@ -33,23 +35,32 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
 
   useEffect(() => {
     if (!userName) return;
+    // 무료 사용자를 위한 서버 방어권
+    if (!isPremium) {
+      const fetchedStart = "09:00";
+      const fetchedEnd = "18:00";
+      setStartTime(fetchedStart);
+      setEndTime(fetchedEnd);
+      return;
+    }
     const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
     fetch(apiUrl, {
       headers: { "x-user-name": encodeURIComponent(userName) },
     })
       .then(res => res.json())
       .then(data => {
-        if (data.startTime) setStartTime(data.startTime);
-        if (data.endTime) {
-          setEndTime(data.endTime);
-          if (onEndTimeLoad) onEndTimeLoad(data.endTime);
-        }
+        const fetchedStart = data.startTime || "09:00";
+        const fetchedEnd = data.endTime || "18:00";
+        setStartTime(fetchedStart);
+        setEndTime(fetchedEnd);
+        if (onTimeLoad) onTimeLoad(fetchedStart, fetchedEnd);
       })
       .catch(() => {});
   }, [userName]);
 
   const saveSchedule = async () => {
     setIsEditing(false);
+    if (!isPremium) return;
     const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
     await fetch(apiUrl, {
       method: "PUT",
@@ -60,7 +71,7 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
       body: JSON.stringify({ startTime, endTime }),
     });
     // 🔥 4. 사용자가 직접 시간을 수정(저장)했을 때도 부모에게 새로 변경된 시간 전달!
-    if (onEndTimeLoad) onEndTimeLoad(endTime);
+    if (onTimeLoad) onTimeLoad(startTime, endTime);
   };
 
   const getTimeStamp = (timeStr: string) => {

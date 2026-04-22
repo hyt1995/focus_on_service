@@ -21,6 +21,8 @@ import DailyView from "@/components/DailyView";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import BrainDumpModal from "@/components/BrainDumpModal"; // 상단에 추가
+import TimeReceiptView from "./time-receipt/page";
+import Paywall from "@/components/Paywall";
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -86,6 +88,9 @@ function MainDashboard({
     );
     setActiveTab(newStatus);
 
+    // 🌟 방어막: 체험판이면 여기서 함수 강제 종료 (DB에 쓰지 않음 = 비용 0원)
+    if (!isPremium) return;
+
     try {
       const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
       await fetch(apiUrl, {
@@ -147,15 +152,49 @@ function MainDashboard({
   const streamRef = useRef<MediaStream | null>(null);
 
   // 🔥 자식(대시보드)으로부터 마감 시간을 받아올 공간 마련 (기본값 18:00)
+  const [todayStartTime, setTodayStartTime] = useState("09:00");
   const [todayEndTime, setTodayEndTime] = useState("18:00");
 
+  // 무료 유저 과금 방지를 위한 방어 코드로 대체
+  // useEffect(() => {
+  //   syncDailyTasks(); // 🔥 앱 켜질 때 동기화 함수부터 무조건 실행! (하루 1번만 작동함)
+  //   fetchTasks();
+  //   fetchSchedules();
+  //   // initSpeechRecognition();
+  //   fetchUsage();
+  // }, []);
+
+  // 🌟 1. userName이 세팅된 후에만 프리미엄 확인을 돌도록 의존성 배열 추가!
   useEffect(() => {
-    syncDailyTasks(); // 🔥 앱 켜질 때 동기화 함수부터 무조건 실행! (하루 1번만 작동함)
-    fetchTasks();
-    fetchSchedules();
-    // initSpeechRecognition();
-    fetchUsage();
-  }, []);
+    if (!userName) return; // 닉네임을 아직 못 가져왔으면 API 쏘지 말고 대기!
+
+    checkPremiumStatus();
+  }, [userName]);
+
+  const checkPremiumStatus = async () => {
+    try {
+      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
+      const res = await fetch(apiUrl, {
+        headers: { "x-user-name": encodeURIComponent(userName) },
+      });
+      const data = await res.json();
+      console.log("22222222222222222222 ::::", data);
+
+      setIsPremium(data.isPremium);
+      setAiUsageCount(data.count);
+
+      // 🌟 2. 결제한 VIP 유저만 진짜 DB에서 일정 데이터를 가져옴! (Read 폭탄 방어)
+      if (data.isPremium) {
+        syncDailyTasks();
+        fetchTasks();
+        fetchSchedules();
+      } else {
+        console.log("🚀 체험판 모드 진입: 서버 DB 통신이 차단되었습니다.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchUsage = async () => {
     try {
@@ -304,9 +343,19 @@ function MainDashboard({
       deadline: deadline.replace("T", " "),
       progress: 0,
       createdAt: new Date().toISOString().split("T")[0],
+      status: "todo",
     };
+
+    setTasks([...tasks, newTask]);
+    setIsModalOpen(false);
+
+    // 🌟 방어막: 체험판이면 여기서 함수 강제 종료 (DB에 쓰지 않음 = 비용 0원)
+    if (!isPremium) {
+      return;
+    }
+
     const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
-    const res = await fetch(apiUrl, {
+    await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -314,10 +363,6 @@ function MainDashboard({
       },
       body: JSON.stringify(newTask),
     });
-    if (res.ok) {
-      setTasks([...tasks, newTask]);
-      setIsModalOpen(false);
-    }
   };
 
   const updateCardDetails = async (
@@ -332,6 +377,10 @@ function MainDashboard({
           : t
       )
     );
+
+    // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
+    if (!isPremium) return;
+
     const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
     await fetch(apiUrl, {
       method: "PUT",
@@ -513,13 +562,15 @@ function MainDashboard({
   };
 
   const deleteTask = async (id: number | string) => {
-    const res = await fetch(`/api/tasks?id=${id}`, {
+    setTasks(tasks?.filter(t => t.id !== id));
+
+    // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
+    if (!isPremium) return;
+
+    await fetch(`/api/tasks?id=${id}`, {
       method: "DELETE",
       headers: { "x-user-name": encodeURIComponent(userName) },
     });
-    if (res.ok) {
-      setTasks(tasks?.filter(t => t.id !== id));
-    }
   };
 
   const updateDeadline = async (id: number | string, newDeadline: string) => {
@@ -531,6 +582,9 @@ function MainDashboard({
         String(t.id) === String(id) ? { ...t, deadline: formattedDeadline } : t
       )
     );
+
+    // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
+    if (!isPremium) return;
 
     const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
     await fetch(apiUrl, {
@@ -559,6 +613,10 @@ function MainDashboard({
     setTasks(_tasks);
     dragItem.current = null;
     dragOverItem.current = null;
+
+    // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
+    if (!isPremium) return;
+
     const apiUrl = baseUrl
       ? `${baseUrl}/api/tasks/reorder`
       : "/api/tasks/reorder";
@@ -752,6 +810,13 @@ function MainDashboard({
 
   // 화면 상태(currentView)에 따라 컴포넌트를 배분하는 함수
   const renderCurrentView = () => {
+    const lockedViews = ["receipt", "daily", "calendar"];
+
+    // 무료 유저가 잠긴 탭을 누르면 모듈화한 Paywall 컴포넌트 렌더링
+    if (!isPremium && lockedViews.includes(currentView)) {
+      return <Paywall onBack={() => setCurrentView("home")} />;
+    }
+
     if (currentView === "home") {
       return (
         <div className="w-full max-w-2xl mx-auto space-y-4">
@@ -884,10 +949,17 @@ function MainDashboard({
       );
     }
 
-    // 🎯 철수야가 원했던 타임 레시피(영수증) 화면 추가!
+    // page.tsx의 renderCurrentView 함수 내부
     if (currentView === "receipt") {
-      // return <TimeReceiptView />;
-      return <div></div>;
+      // 🌟 대시보드에서 설정한 진짜 스케줄 시간을 영수증으로 통째로 넘겨줌!
+      return (
+        <TimeReceiptView
+          tasks={tasks}
+          schedules={schedules}
+          userName={userName}
+          workingTime={`${todayStartTime} ~ ${todayEndTime}`}
+        />
+      );
     }
 
     // 기본값 (calendar)
@@ -926,7 +998,11 @@ function MainDashboard({
             <TodayTimeboxDashboard
               userName={userName}
               todaySchedules={todaySchedules}
-              onEndTimeLoad={setTodayEndTime}
+              onTimeLoad={(start, end) => {
+                setTodayStartTime(start);
+                setTodayEndTime(end);
+              }}
+              isPremium={isPremium}
             />
           </div>
         </header>
@@ -967,7 +1043,9 @@ function MainDashboard({
 
           <button
             onClick={toggleBrainDump}
-            disabled={isAiProcessing || (!isPremium && aiUsageCount >= 2)}
+            disabled={
+              !isPremium || isAiProcessing || (!isPremium && aiUsageCount >= 2)
+            }
             className={`p-4 rounded-full transition-all flex justify-center items-center
               ${
                 isBrainDumping
@@ -975,7 +1053,9 @@ function MainDashboard({
                   : "bg-[#FF9500] hover:scale-105 shadow-lg shadow-[#FF9500]/40"
               }
               ${
-                isAiProcessing || (!isPremium && aiUsageCount >= 2)
+                isAiProcessing ||
+                (!isPremium && aiUsageCount >= 2) ||
+                !isPremium
                   ? "opacity-50 cursor-not-allowed !bg-gray-400 !shadow-none hover:scale-100"
                   : ""
               }

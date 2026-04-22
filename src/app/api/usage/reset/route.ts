@@ -1,3 +1,5 @@
+// --- app/api/usage/reset/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";

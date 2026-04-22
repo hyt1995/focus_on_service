@@ -1,3 +1,5 @@
+// /src/app/api/daily/sync/route.ts
+
 import { NextResponse } from "next/server";
 import {
   getAllDailyTemplates,

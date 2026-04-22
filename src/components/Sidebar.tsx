@@ -60,42 +60,48 @@ export default function Sidebar({
           </h1>
         </div>
         <nav className="space-y-2 flex-1 text-[#8E8E93]">
-          <Link href="/">
-            <button
-              onClick={() => setCurrentView("home")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-                currentView === "home"
-                  ? "bg-blue-50 text-[#007AFF]"
-                  : "hover:bg-gray-50"
-              }`}
-            >
-              <Home className="w-5 h-5" /> <span>Home</span>
-            </button>
-            <button
-              onClick={() => setCurrentView("calendar")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-                currentView === "calendar"
-                  ? "bg-blue-50 text-[#007AFF]"
-                  : "hover:bg-gray-50"
-              }`}
-            >
-              <Calendar className="w-5 h-5" /> <span>Calendar</span>
-            </button>
-            <button
-              onClick={() => setCurrentView("daily")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-                currentView === "daily"
-                  ? "bg-blue-50 text-[#007AFF]"
-                  : "hover:bg-gray-50"
-              }`}
-            >
-              <Repeat className="w-5 h-5" /> <span>Daily 루틴</span>
-            </button>
-          </Link>
           <button
-            onClick={() => {
+            onClick={() => setCurrentView("home")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              currentView === "home"
+                ? "bg-blue-50 text-[#007AFF]"
+                : "hover:bg-gray-50"
+            }`}
+          >
+            <Home className="w-5 h-5" /> <span>Home</span>
+          </button>
+          <button
+            onClick={() => setCurrentView("calendar")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              currentView === "calendar"
+                ? "bg-blue-50 text-[#007AFF]"
+                : "hover:bg-gray-50"
+            }`}
+          >
+            <Calendar className="w-5 h-5" /> <span>Calendar</span>
+          </button>
+          <button
+            onClick={() => setCurrentView("daily")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              currentView === "daily"
+                ? "bg-blue-50 text-[#007AFF]"
+                : "hover:bg-gray-50"
+            }`}
+          >
+            <Repeat className="w-5 h-5" /> <span>Daily 루틴</span>
+          </button>
+
+          <button
+            onClick={(e: any) => {
+              // 혹시 handleReceiptClick에 결제 검증 같은 다른 로직이 있다면 같이 실행!
+              if (typeof handleReceiptClick === "function") {
+                handleReceiptClick(e);
+              }
+
+              // 1. 화면 상태를 영수증으로 변경 (DB 재호출 차단 SPA 방식)
               setCurrentView("receipt");
-              // 모바일용 사이드바 닫기 함수가 있다면 추가 (없으면 빼도 됨)
+
+              // 2. 모바일 환경일 경우 메뉴 닫기
               if (setIsMobileOpen) setIsMobileOpen(false);
             }}
             className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
@@ -104,18 +110,8 @@ export default function Sidebar({
                 : "text-gray-700 hover:bg-gray-100"
             }`}
           >
-            <Link
-              href="/time-receipt"
-              onClick={handleReceiptClick} // 방금 만든 함수 연결
-              className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
-                currentView === "receipt"
-                  ? "bg-blue-50 text-[#007AFF] font-bold"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <FileText className="w-5 h-5" />
-              <span className="font-bold">타임 레시피</span>
-            </Link>
+            <FileText className="w-5 h-5" />
+            <span className="font-bold">타임 레시피</span>
           </button>
         </nav>
       </aside>
@@ -135,51 +131,57 @@ export default function Sidebar({
               </button>
             </div>
             <div className="p-4 space-y-2">
-              <Link href="/">
-                <button
-                  onClick={() => {
-                    setCurrentView("home");
-                    setIsMobileOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
-                    currentView === "home"
-                      ? "bg-[#007AFF] text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  🏠 홈 (Today's Focus)
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView("calendar");
-                    setIsMobileOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
-                    currentView === "calendar"
-                      ? "bg-[#007AFF] text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  📅 달력 및 일정 관리
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView("daily");
-                    setIsMobileOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
-                    currentView === "daily"
-                      ? "bg-[#007AFF] text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  🔁 데일리 루틴 관리
-                </button>
-              </Link>
               <button
                 onClick={() => {
+                  setCurrentView("home");
+                  setIsMobileOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
+                  currentView === "home"
+                    ? "bg-[#007AFF] text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                🏠 홈 (Today's Focus)
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView("calendar");
+                  setIsMobileOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
+                  currentView === "calendar"
+                    ? "bg-[#007AFF] text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                📅 달력 및 일정 관리
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView("daily");
+                  setIsMobileOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 rounded-xl font-bold ${
+                  currentView === "daily"
+                    ? "bg-[#007AFF] text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                🔁 데일리 루틴 관리
+              </button>
+
+              <button
+                onClick={(e: any) => {
+                  // 혹시 handleReceiptClick에 결제 검증 같은 다른 로직이 있다면 같이 실행!
+                  if (typeof handleReceiptClick === "function") {
+                    handleReceiptClick(e);
+                  }
+
+                  // 1. 화면 상태를 영수증으로 변경 (DB 재호출 차단 SPA 방식)
                   setCurrentView("receipt");
-                  // 모바일용 사이드바 닫기 함수가 있다면 추가 (없으면 빼도 됨)
+
+                  // 2. 모바일 환경일 경우 메뉴 닫기
                   if (setIsMobileOpen) setIsMobileOpen(false);
                 }}
                 className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
@@ -188,18 +190,7 @@ export default function Sidebar({
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                <Link
-                  href="/time-receipt"
-                  onClick={handleReceiptClick} // 방금 만든 함수 연결
-                  className={`flex items-center gap-3 p-3 rounded-xl transition-colors w-full text-left ${
-                    currentView === "receipt"
-                      ? "bg-blue-50 text-[#007AFF] font-bold"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {/* 아이콘이 있다면 유지, 없으면 텍스트만 둬도 됨 */}
-                  <span className="font-bold">타임 레시피</span>
-                </Link>
+                <span className="font-bold">타임 영수증</span>
               </button>
             </div>
           </div>

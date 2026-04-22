@@ -1,3 +1,5 @@
+// /src/app/api/daily/template/route.ts
+
 import { NextResponse } from "next/server";
 // 네가 만든 dataService에서 방금 추가한 함수들을 불러온다. (경로 주의)
 import {

@@ -1,3 +1,5 @@
+// /src/app/api/calendar/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase"; // firebase 설정 경로 확인
 import { doc, getDoc, setDoc } from "firebase/firestore";

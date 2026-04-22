@@ -12,6 +12,7 @@ export interface Task {
   lastStartedAt?: number | null;
   isActive?: boolean;
   status?: string;
+  order?: number;
 }
 
 export interface Schedule {

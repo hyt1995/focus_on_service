@@ -1,3 +1,5 @@
+// /src/app/api/schedule/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase"; // firebase 설정 파일 경로에 맞게 수정하세요
 import { doc, getDoc, setDoc } from "firebase/firestore";
