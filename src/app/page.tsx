@@ -106,7 +106,7 @@ function MainDashboard({
       });
     } catch (error) {
       console.error("상태 변경 에러:", error);
-      alert("서버 오류로 상태가 저장되지 않았습니다.");
+      alert("서버 오류로 상태가 저장되지 않았어요.");
     }
   };
 
@@ -197,7 +197,7 @@ function MainDashboard({
         fetchSchedules();
         fetchSettings(); // 🌟 여기서 세팅값(마감시간)도 불러오기!
       } else {
-        console.log("🚀 체험판 모드 진입: 서버 DB 통신이 차단되었습니다.");
+        console.log("🚀 체험판 모드 진입: 서버 DB 통신이 실패했어요.");
       }
     } catch (err) {
       console.error(err);
@@ -424,7 +424,7 @@ function MainDashboard({
 
   // 🔥 1. 리셋 함수 추가 (컴포넌트 안에 아무 데나 넣으셈)
   const handleResetUsage = async () => {
-    if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠습니까?")) return;
+    if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠어요?")) return;
     try {
       const apiUrl = baseUrl
         ? `${baseUrl}/api/usage/reset`
@@ -540,7 +540,7 @@ function MainDashboard({
       });
 
       if (res.status === 403) {
-        alert("오늘 무료 제공량(하루 2회)을 모두 소진했습니다.");
+        alert("오늘 무료 제공량(하루 2회)을 모두 소진했어요.");
         setAiUsageCount(2);
         setIsAiProcessing(false);
         return;
@@ -676,7 +676,7 @@ function MainDashboard({
     }
 
     if (!isPremium && aiUsageCount >= 2) {
-      alert("오늘 무료 제공량을 모두 소진했습니다.");
+      alert("오늘 무료 제공량을 모두 소진했어요.");
       return;
     }
 
@@ -886,7 +886,7 @@ function MainDashboard({
           {/* 🔥 중복 매핑 제거 & 비어있을 때 방어 로직 추가 */}
           {tasks?.length === 0 ? (
             <div className="text-center text-gray-400 py-10 font-bold">
-              우측 하단의 플러스 버튼을 눌러 일정을 추가하세요.
+              우측 하단의 플러스 버튼을 눌러 일정을 추가해주세요.
             </div>
           ) : (
             <>
@@ -940,7 +940,7 @@ function MainDashboard({
                   ))
                 ) : (
                   <div className="text-center text-gray-400 py-10 font-bold">
-                    해당 상태의 일정이 없습니다.
+                    해당 상태의 일정이 없어요!
                   </div>
                 );
               })()}
@@ -1030,7 +1030,7 @@ function MainDashboard({
 
         {isAiProcessing && (
           <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-black/90 text-white px-8 py-4 rounded-full text-sm font-bold animate-bounce z-50 shadow-xl">
-            🧠 AI가 일정을 재배열 하는 중...
+            🧠 AI가 일정을 재배열 하는 중이에요...
           </div>
         )}
 
@@ -1071,7 +1071,7 @@ function MainDashboard({
             `}
             title={
               !isPremium && aiUsageCount >= 2
-                ? "오늘의 사용량(2회) 소진됨"
+                ? "오늘의 사용량(2회) 소진됐어요"
                 : "AI 음성 일정 쪼개기"
             }
           >
@@ -1087,7 +1087,7 @@ function MainDashboard({
           <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-6 animate-in fade-in duration-300">
             {/* 상단 경고 메시지 */}
             <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-widest text-center animate-pulse">
-              딴생각 금지. 지금 당장 이것부터 해치웁니다.
+              딴생각 보다는 지금 이것부터 같이 해요.
             </h2>
 
             {/* 거대한 1순위 카드 */}
@@ -1115,7 +1115,7 @@ function MainDashboard({
                   }}
                   className="w-full bg-[#007AFF] text-white text-lg font-bold py-5 rounded-2xl shadow-lg shadow-blue-500/40 hover:bg-blue-600 transition-all flex items-center justify-center gap-3 hover:scale-[1.02]"
                 >
-                  <Play className="w-6 h-6 fill-current" /> 지금 바로 시작
+                  <Play className="w-6 h-6 fill-current" /> 지금 바로 시작해요!
                 </button>
 
                 {/* 도망갈 구멍 (작게) */}
@@ -1123,7 +1123,7 @@ function MainDashboard({
                   onClick={() => setShowSniperModal(false)}
                   className="w-full text-gray-400 font-bold py-3 hover:text-gray-600 transition-colors text-sm"
                 >
-                  나중에 하기
+                  나중에 해요..
                 </button>
               </div>
             </div>
