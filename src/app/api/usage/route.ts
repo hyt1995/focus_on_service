@@ -1,3 +1,6 @@
+// /src/app/api/usage/route.ts
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -17,28 +20,26 @@ export async function GET(request: Request) {
   const today = getTodayKST();
 
   try {
-    // 🔥 users_usage가 아니라 users 메인 껍데기 문서를 바라봄!
-    const docRef = doc(db, "users", decodedName);
-    const docSnap = await getDoc(docRef);
+    // 🌟 단일화 및 비용 절감: users 컬렉션 한 번만 읽기!
+    const userRef = doc(db, "users", decodedName);
+    const userSnap = await getDoc(userRef);
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      const aiUsage = data.aiUsage || {};
+    let isPremium = false;
+    let count = 0;
 
-      if (aiUsage.date === today) {
-        return NextResponse.json({
-          count: aiUsage.count || 0,
-          isPremium: data.isPremium || false,
-        });
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      isPremium = userData.isPremium || false;
+
+      // 🔥 과거의 users_usage가 아니라, 갱신된 최신 데이터(users 문서 안의 aiUsage 객체)를 바라봄!
+      if (userData.aiUsage && userData.aiUsage.date === today) {
+        count = Number(userData.aiUsage.count) || 0;
       }
-      return NextResponse.json({
-        count: 0,
-        isPremium: data.isPremium || false,
-      });
     }
 
-    return NextResponse.json({ count: 0, isPremium: false });
+    return NextResponse.json({ count, isPremium });
   } catch (error) {
+    console.error("Usage load error:", error);
     return NextResponse.json(
       { error: "Failed to load usage" },
       { status: 500 }

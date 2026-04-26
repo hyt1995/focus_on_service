@@ -3,19 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build",
+    "_dev": "next dev --webpack",
+    "dev": "granite dev",
+    "build": "ait build",
     "start": "next start",
     "lint": "eslint",
     "dev:app": "cross-env APP_ENV=dev cap sync && npx cap run android",
-    "build:app": "cross-env APP_ENV=prod cap sync && npx cap open android"
+    "build:app": "cross-env APP_ENV=prod cap sync && npx cap open android",
+    "deploy": "ait deploy"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^2.4.7",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^8.3.0",
     "@capacitor/core": "^8.3.0",
+    "@emotion/react": "^11.14.0",
     "@google/generative-ai": "^0.24.1",
+    "@toss/tds-mobile": "^2.3.0",
+    "@toss/tds-mobile-ait": "^2.3.0",
     "dotenv": "^17.4.2",
     "firebase": "^12.10.0",
     "firebase-admin": "^13.8.0",
@@ -23,10 +28,10 @@
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.577.0",
-    "next": "16.1.6",
-    "react": "19.2.3",
+    "next": "14.2.15",
+    "react": "^18.3.1",
     "react-barcode": "^1.6.1",
-    "react-dom": "19.2.3"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.3.0",
@@ -35,8 +40,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "cross-env": "^10.1.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.15",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
