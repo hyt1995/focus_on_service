@@ -28,6 +28,7 @@
     "fix-webm-duration": "^1.0.6",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
+    "jose": "^6.2.3",
     "lucide-react": "^0.577.0",
     "next": "14.2.15",
     "react": "^18.3.1",
