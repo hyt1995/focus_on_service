@@ -1,5 +1,18 @@
+// src/components/CalendarView.tsx
+
 "use client"; // 🔥 [필수] 이거 없으면 배포 시 달력 터집니다!
 
+// import React, { useState } from "react";
+// import {
+//   X,
+//   ChevronLeft,
+//   ChevronRight,
+//   Plus,
+//   ChevronDown,
+//   ChevronUp,
+//   Trash2,
+//   Pencil,
+// } from "lucide-react";
 import React, { useState } from "react";
 import {
   X,
@@ -11,6 +24,8 @@ import {
   Trash2,
   Pencil,
 } from "lucide-react";
+// 🔥 토스 TDS 컴포넌트 추가
+import { BottomSheet, Button } from "@toss/tds-mobile";
 
 interface Schedule {
   id: string;
@@ -188,202 +203,201 @@ const CalendarView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* 🌟 2. 증발했던 이번 달 전체 일정 리스트 복구 🌟 */}
-      <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">
+      {/* 🌟 2. 토스 네이티브 스타일: 이번 달 전체 일정 리스트 🌟 */}
+      <div className="bg-white rounded-[16px] p-2 mb-8">
+        <h3 className="text-[#191F28] text-[20px] font-bold tracking-tight mb-2 px-4">
           이번 달 전체 일정
         </h3>
         {thisMonthSchedules.length > 0 ? (
-          <div className="space-y-3">
-            {thisMonthSchedules.map(schedule => (
+          <div className="flex flex-col px-4">
+            {thisMonthSchedules.map((schedule, index) => (
               <div
                 key={schedule.id}
-                className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors border border-transparent hover:border-gray-100"
+                className={`flex items-center justify-between py-4 ${
+                  index !== thisMonthSchedules.length - 1
+                    ? "border-b border-[#F2F4F6]"
+                    : ""
+                }`}
               >
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-800">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[13px] font-semibold text-[#8B95A1]">
                     {schedule.date}
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-[16px] font-medium text-[#191F28]">
                     {schedule.title}
                   </span>
                 </div>
-                <div className="text-sm font-bold text-[#007AFF]">
+                <div className="text-[15px] font-semibold text-[#3182F6]">
                   {schedule.startTime} ~ {schedule.endTime}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-400 text-center py-6">
+          <p className="text-[15px] text-[#8B95A1] text-center py-8 font-medium">
             이번 달 일정이 없습니다.
           </p>
         )}
       </div>
 
       {/* 🌟 3. 특정 날짜 클릭 시 나타나는 모달창 🌟 */}
-      {selectedDate && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[24px] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
-            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
-              <h3 className="font-bold text-gray-800 text-lg">
-                {selectedDate}
-              </h3>
-              <div className="flex items-center gap-2">
-                {!isAdding && (
-                  <button
-                    onClick={() => handleOpenForm()}
-                    className="flex items-center gap-1 bg-[#007AFF] text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-600 transition-colors"
-                  >
-                    <Plus size={16} /> 추가하기
-                  </button>
-                )}
-                <button
-                  onClick={() => setSelectedDate(null)}
-                  className="p-1 hover:bg-gray-200 rounded-full"
-                >
-                  <X size={20} className="text-gray-500" />
-                </button>
-              </div>
-            </div>
+      {/* 🌟 3. 토스 바이브: 특정 날짜 클릭 시 나타나는 BottomSheet 🌟 */}
+      <BottomSheet
+        open={!!selectedDate}
+        onClose={() => {
+          setSelectedDate(null);
+          setIsAdding(false);
+        }}
+      >
+        <div className="flex flex-col max-h-[85vh] p-5 pb-8">
+          {/* 헤더 영역 */}
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-[#191F28] text-[20px] tracking-tight">
+              {selectedDate}
+            </h3>
+            {!isAdding && (
+              <button
+                onClick={() => handleOpenForm()}
+                className="flex items-center gap-1 bg-[#F2F4F6] text-[#3182F6] px-3 py-1.5 rounded-[8px] text-[14px] font-bold transition-colors"
+              >
+                <Plus size={16} /> 추가하기
+              </button>
+            )}
+          </div>
 
-            <div className="p-6 overflow-y-auto">
-              {isAdding ? (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <input
-                    type="text"
-                    placeholder="일정 제목"
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-3 text-sm font-bold outline-none focus:border-[#007AFF]"
-                  />
-                  <textarea
-                    placeholder="상세 내역 (선택)"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-3 text-sm outline-none focus:border-[#007AFF] h-20 resize-none"
-                  />
-                  <div className="flex gap-3 mb-5">
-                    <div className="flex-1">
-                      <label className="text-[10px] text-gray-400 font-bold ml-1">
-                        시작 시간
-                      </label>
-                      <input
-                        type="time"
-                        value={startTime}
-                        onChange={e => setStartTime(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-[10px] text-[#007AFF] font-bold ml-1">
-                        마감 시간 ★
-                      </label>
-                      <input
-                        type="time"
-                        value={endTime}
-                        onChange={e => setEndTime(e.target.value)}
-                        className="w-full border border-[#007AFF] bg-blue-50 rounded-xl px-3 py-2 text-sm font-bold"
-                      />
-                    </div>
+          <div className="overflow-y-auto">
+            {isAdding ? (
+              /* --- 폼(Form) 영역: 토스 스타일 Input --- */
+              <div className="animate-in fade-in duration-300 space-y-3">
+                <input
+                  type="text"
+                  placeholder="일정 제목"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  className="w-full bg-[#F2F4F6] rounded-[12px] px-4 py-4 text-[16px] font-medium text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6]"
+                />
+                <textarea
+                  placeholder="상세 내역 (선택)"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  className="w-full bg-[#F2F4F6] rounded-[12px] px-4 py-4 text-[15px] text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] h-24 resize-none"
+                />
+                <div className="flex gap-3 pt-2">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <label className="text-[13px] text-[#6B7684] font-semibold pl-1">
+                      시작 시간
+                    </label>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={e => setStartTime(e.target.value)}
+                      className="w-full bg-[#F2F4F6] rounded-[12px] px-4 py-3 text-[16px] outline-none"
+                    />
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setIsAdding(false);
-                        setEditingId(null);
-                      }}
-                      className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      className="flex-1 bg-[#007AFF] text-white font-bold py-3 rounded-xl shadow-md hover:bg-blue-600 transition-colors"
-                    >
-                      {editingId ? "수정하기" : "저장하기"}
-                    </button>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <label className="text-[13px] text-[#3182F6] font-bold pl-1">
+                      마감 시간 ★
+                    </label>
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={e => setEndTime(e.target.value)}
+                      className="w-full bg-[#E8F3FF] text-[#3182F6] font-bold rounded-[12px] px-4 py-3 text-[16px] outline-none"
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="animate-in fade-in slide-in-from-left-4 duration-300">
-                  {selectedDateSchedules.length > 0 ? (
-                    <div className="space-y-4">
-                      {selectedDateSchedules.map(s => (
-                        <div
-                          key={s.id}
-                          className="border border-gray-200 rounded-xl p-4 shadow-sm relative group hover:border-blue-200 transition-colors"
-                        >
-                          <div className="flex justify-between items-start mb-1 gap-2">
-                            <h4 className="font-bold text-gray-800 flex-1">
-                              {s.title}
-                            </h4>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs font-bold text-[#007AFF] bg-blue-50 px-2 py-1 rounded-md mr-1">
-                                {s.startTime} ~ {s.endTime}
-                              </span>
-                              <button
-                                onClick={() => handleOpenForm(s)}
-                                className="text-gray-300 hover:text-[#007AFF] transition-colors p-1"
-                                title="수정"
-                              >
-                                <Pencil size={16} />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (window.confirm("삭제하시겠습니까?"))
-                                    onDeleteSchedule(s.id);
-                                }}
-                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                                title="삭제"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
+
+                {/* 토스 TDS 버튼 */}
+                <div className="flex gap-3 mt-6 pt-4">
+                  <Button
+                    color="dark"
+                    variant="weak"
+                    style={{ flex: 1 }}
+                    onClick={() => {
+                      setIsAdding(false);
+                      setEditingId(null);
+                    }}
+                  >
+                    취소
+                  </Button>
+                  <Button style={{ flex: 1 }} onClick={handleSave}>
+                    {editingId ? "수정하기" : "저장하기"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* --- 상세 리스트 영역 --- */
+              <div className="animate-in fade-in duration-300">
+                {selectedDateSchedules.length > 0 ? (
+                  <div className="space-y-4">
+                    {selectedDateSchedules.map(s => (
+                      <div
+                        key={s.id}
+                        className="bg-[#F9FAFB] rounded-[16px] p-5 relative group"
+                      >
+                        <div className="flex justify-between items-start mb-2 gap-2">
+                          <h4 className="font-bold text-[#191F28] text-[17px] flex-1">
+                            {s.title}
+                          </h4>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenForm(s)}
+                              className="text-[#8B95A1] hover:text-[#3182F6] p-1"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm("삭제하시겠습니까?"))
+                                  onDeleteSchedule(s.id);
+                              }}
+                              className="text-[#8B95A1] hover:text-[#F04452] p-1"
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           </div>
-                          {s.description && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              <p
-                                className={`${
-                                  expandedId === s.id
-                                    ? ""
-                                    : "line-clamp-1 truncate"
-                                }`}
-                              >
-                                {s.description}
-                              </p>
-                              <button
-                                onClick={() =>
-                                  setExpandedId(
-                                    expandedId === s.id ? null : s.id
-                                  )
-                                }
-                                className="w-full flex justify-center mt-2 text-gray-400 hover:text-[#007AFF]"
-                              >
-                                {expandedId === s.id ? (
-                                  <ChevronUp size={16} />
-                                ) : (
-                                  <ChevronDown size={16} />
-                                )}
-                              </button>
-                            </div>
-                          )}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10">
-                      <p className="text-gray-500 font-bold mb-4">
-                        오늘 일정이 없습니다.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                        <span className="text-[14px] font-bold text-[#3182F6]">
+                          {s.startTime} ~ {s.endTime}
+                        </span>
+                        {s.description && (
+                          <div className="mt-3 text-[15px] text-[#6B7684]">
+                            <p
+                              className={`${
+                                expandedId === s.id ? "" : "line-clamp-2"
+                              }`}
+                            >
+                              {s.description}
+                            </p>
+                            <button
+                              onClick={() =>
+                                setExpandedId(expandedId === s.id ? null : s.id)
+                              }
+                              className="w-full flex justify-center mt-1 text-[#B0B8C1]"
+                            >
+                              {expandedId === s.id ? (
+                                <ChevronUp size={16} />
+                              ) : (
+                                <ChevronDown size={16} />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-[#8B95A1] font-medium text-[16px]">
+                      오늘 일정이 없습니다.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 };

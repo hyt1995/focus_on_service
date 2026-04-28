@@ -1,3 +1,7 @@
+// src/app/api/deepgram/route.ts
+
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -21,6 +25,7 @@ export async function GET(request: Request) {
           Authorization: `Token ${apiKey}`,
           "Content-Type": "application/json",
         },
+        cache: "no-store",
         body: JSON.stringify({
           comment: "Temp client token for frontend",
           scopes: ["usage:write"],
