@@ -1,15 +1,13 @@
-// src/components/DailyView.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { Plus, Check, Trash2, X, Clock } from "lucide-react";
-import { BottomSheet, Button } from "@toss/tds-mobile";
 
 interface RoutineTemplate {
   id: string | number;
   title: string;
   desc: string;
-  deadline?: string; // 🔥 마감시간 추가
+  deadline?: string;
   isEnabled: boolean;
 }
 
@@ -18,7 +16,6 @@ export default function DailyView({ userName }: { userName: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const maxSlots = 5;
 
-  // 🔥 모달창 상태 관리
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -28,6 +25,7 @@ export default function DailyView({ userName }: { userName: string }) {
   useEffect(() => {
     fetchRoutines();
   }, []);
+
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const fetchRoutines = async () => {
@@ -77,11 +75,9 @@ export default function DailyView({ userName }: { userName: string }) {
     if (!confirm("이 데일리 루틴을 삭제하시겠습니까?")) return;
     setRoutines(routines.filter(r => r.id !== id));
     try {
-      // 🔥 수정: baseUrl 적용
       const apiUrl = baseUrl
         ? `${baseUrl}/api/daily/template?id=${id}`
         : `/api/daily/template?id=${id}`;
-
       await fetch(apiUrl, {
         method: "DELETE",
         headers: { "x-user-name": encodeURIComponent(userName) },
@@ -91,7 +87,6 @@ export default function DailyView({ userName }: { userName: string }) {
     }
   };
 
-  // 🔥 모달창 닫기 초기화 함수
   const closeModal = () => {
     setIsModalOpen(false);
     setNewTitle("");
@@ -99,13 +94,11 @@ export default function DailyView({ userName }: { userName: string }) {
     setNewDeadline("");
   };
 
-  // 🔥 진짜 추가 로직 (모달에서 저장 버튼 누를 때)
   const submitNewRoutine = async () => {
     if (!newTitle.trim()) {
       alert("제목은 필수 입력입니다.");
       return;
     }
-
     setIsSubmitting(true);
     try {
       const apiUrl = baseUrl
@@ -123,7 +116,6 @@ export default function DailyView({ userName }: { userName: string }) {
           deadline: newDeadline,
         }),
       });
-
       if (res.ok) {
         const newRoutine = await res.json();
         setRoutines([...routines, newRoutine]);
@@ -225,7 +217,7 @@ export default function DailyView({ userName }: { userName: string }) {
 
       {routines.length < maxSlots ? (
         <button
-          onClick={() => setIsModalOpen(true)} // 🔥 알림창 대신 모달 열기
+          onClick={() => setIsModalOpen(true)}
           className="w-full py-4 mt-2 rounded-[16px] bg-[#F2F4F6] text-[#6B7684] hover:bg-[#E8F3FF] hover:text-[#3182F6] transition-colors flex items-center justify-center gap-2 text-[15px] font-bold"
         >
           <Plus size={18} /> 새 루틴 추가
@@ -236,75 +228,86 @@ export default function DailyView({ userName }: { userName: string }) {
         </div>
       )}
 
-      {/* 🔥 새 루틴 추가 모달 (Modal) */}
-      {/* 🌟 토스 바이브: 새 루틴 추가 BottomSheet 🌟 */}
-      <BottomSheet open={isModalOpen} onClose={closeModal}>
-        <div className="flex flex-col p-5 pb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-[#191F28] text-[20px] tracking-tight">
-              새 데일리 루틴
-            </h3>
-          </div>
+      {/* 🔥 새 루틴 추가 모달 (Tailwind 오리지널 버전) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* 어두운 뒷배경 (클릭 시 닫힘) */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={closeModal}
+          ></div>
 
-          <div className="space-y-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-[#6B7684] pl-1">
-                제목 <span className="text-[#F04452]">*</span>
-              </label>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                placeholder="예: 매일 아침 운동"
-                className="w-full px-4 py-4 bg-[#F2F4F6] border border-transparent rounded-[12px] text-[16px] text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] transition-all"
-                autoFocus
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-[#6B7684] pl-1">
-                상세 내용 (선택)
-              </label>
-              <textarea
-                value={newDesc}
-                onChange={e => setNewDesc(e.target.value)}
-                placeholder="루틴에 대한 간단한 메모..."
-                className="w-full px-4 py-4 bg-[#F2F4F6] border border-transparent rounded-[12px] text-[15px] text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] transition-all resize-none h-20"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-[#6B7684] pl-1">
-                마감 시간 (선택)
-              </label>
-              <input
-                type="time"
-                value={newDeadline}
-                onChange={e => setNewDeadline(e.target.value)}
-                className="w-full px-4 py-4 bg-[#F2F4F6] border border-transparent rounded-[12px] text-[16px] text-[#191F28] outline-none focus:ring-1 focus:ring-[#3182F6] transition-all"
-              />
-            </div>
-          </div>
+          {/* 모달 하얀색 컨텐츠 박스 */}
+          <div className="relative bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex flex-col p-6 pb-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-bold text-[#191F28] text-[20px] tracking-tight">
+                  새 데일리 루틴
+                </h3>
+              </div>
 
-          {/* 토스 TDS 액션 버튼 */}
-          <div className="flex gap-3 mt-8">
-            <Button
-              color="dark"
-              variant="weak"
-              style={{ flex: 1 }}
-              onClick={closeModal}
-            >
-              취소
-            </Button>
-            <Button
-              style={{ flex: 1 }}
-              onClick={submitNewRoutine}
-              loading={isSubmitting}
-              disabled={isSubmitting || !newTitle.trim()}
-            >
-              저장하기
-            </Button>
+              <div className="space-y-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-[#6B7684] pl-1">
+                    제목 <span className="text-[#F04452]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newTitle}
+                    onChange={e => setNewTitle(e.target.value)}
+                    placeholder="예: 매일 아침 운동"
+                    className="w-full px-4 py-4 bg-[#F2F4F6] border border-transparent rounded-[12px] text-[16px] text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] transition-all"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-[#6B7684] pl-1">
+                    상세 내용 (선택)
+                  </label>
+                  <textarea
+                    value={newDesc}
+                    onChange={e => setNewDesc(e.target.value)}
+                    placeholder="루틴에 대한 간단한 메모..."
+                    className="w-full px-4 py-4 bg-[#F2F4F6] border border-transparent rounded-[12px] text-[15px] text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] transition-all resize-none h-20"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-[#6B7684] pl-1">
+                    마감 시간 (선택)
+                  </label>
+                  <input
+                    type="time"
+                    value={newDeadline}
+                    onChange={e => setNewDeadline(e.target.value)}
+                    className="w-full px-4 py-4 bg-[#F2F4F6] border border-transparent rounded-[12px] text-[16px] text-[#191F28] outline-none focus:ring-1 focus:ring-[#3182F6] transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* 🔥 오리지널 Tailwind 버튼으로 교체 */}
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={closeModal}
+                  className="flex-1 py-4 bg-[#F2F4F6] text-[#4E5968] font-bold rounded-2xl hover:bg-gray-200 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={submitNewRoutine}
+                  disabled={isSubmitting || !newTitle.trim()}
+                  className={`flex-1 py-4 font-bold rounded-2xl transition-all shadow-md ${
+                    isSubmitting || !newTitle.trim()
+                      ? "bg-gray-300 text-white cursor-not-allowed shadow-none"
+                      : "bg-[#3182F6] text-white hover:bg-blue-600 active:scale-95 shadow-blue-200"
+                  }`}
+                >
+                  {isSubmitting ? "저장 중..." : "저장하기"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </BottomSheet>
+      )}
     </div>
   );
 }

@@ -9,8 +9,8 @@ const nextConfig = {
   // 터미널에서 IS_EXPORT=true npm run build 칠 때만 export 모드가 됨
   // output: isExport ? "export" : undefined,
   // output: undefined,
-  output: "export", // 이렇게 작동해야함
-  // output: undefined,
+  // output: "export", // 이렇게 작동해야함
+  output: undefined,
 
   // 앱 빌드 시 Next.js 서버 이미지를 못 쓰므로 최적화 해제
   images: {

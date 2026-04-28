@@ -25,8 +25,6 @@ import BrainDumpModal from "@/components/BrainDumpModal"; // 상단에 추가
 import TimeReceiptView from "@/components/TimeReceiptView";
 import Paywall from "@/components/Paywall";
 // 🔥 [TDS 추가] 토스 디자인 컴포넌트들을 불러와요
-import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
-import { ConfirmDialog, Button, FixedBottomCTA } from "@toss/tds-mobile";
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -978,18 +976,17 @@ function MainDashboard({
                   { id: "in-progress", label: "진행 중" },
                   { id: "done", label: "완료" },
                 ].map(tab => (
-                  <Button
+                  <button // 🔥 대문자 Button을 소문자 button으로 변경
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300
-                          ${
-                            activeTab === tab.id
-                              ? "bg-[#1C1C1E] text-white shadow-md"
-                              : "bg-white text-gray-400 border border-gray-200 hover:bg-gray-50"
-                          }`}
+                    className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? "bg-[#1C1C1E] text-white shadow-md"
+                        : "bg-white text-gray-400 border border-gray-200 hover:bg-gray-50"
+                    }`}
                   >
                     {tab.label}
-                  </Button>
+                  </button>
                 ))}
               </div>
 
@@ -1067,57 +1064,56 @@ function MainDashboard({
 
   // --- 렌더링 영역 ---
   return (
-    <TDSMobileAITProvider>
-      <div className="flex h-screen bg-[#F9F9FB] text-[#1C1C1E] overflow-hidden">
-        <Sidebar
-          currentView={currentView}
-          setCurrentView={setCurrentView}
-          isMobileOpen={isSidebarOpen}
-          setIsMobileOpen={setIsSidebarOpen}
-          closingTime={todayEndTime}
+    <div className="flex h-screen bg-[#F9F9FB] text-[#1C1C1E] overflow-hidden">
+      <Sidebar
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        isMobileOpen={isSidebarOpen}
+        setIsMobileOpen={setIsSidebarOpen}
+        closingTime={todayEndTime}
+      />
+
+      <main className="flex-1 flex flex-col relative overflow-hidden">
+        <header className="flex items-center gap-5 justify-between p-4 lg:p-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100">
+          <button
+            className="lg:hidden shrink-0 p-2 -ml-2 text-gray-700 hover:bg-gray-200 rounded-xl"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu className="w-7 h-7" />
+          </button>
+          <div className="flex-1 min-w-0 lg:max-w-2xl lg:mx-auto gap-3">
+            <TodayTimeboxDashboard
+              userName={userName}
+              todaySchedules={todaySchedules}
+              onTimeLoad={(start, end) => {
+                setTodayStartTime(start);
+                setTodayEndTime(end);
+              }}
+              isPremium={isPremium}
+            />
+          </div>
+        </header>
+
+        <section className="flex-1 overflow-y-auto p-4 lg:p-10 space-y-4 pb-40">
+          {renderCurrentView()}
+        </section>
+
+        {/* 모듈화된 브레인덤프 모달 */}
+        <BrainDumpModal
+          isOpen={isBrainDumping}
+          prepCount={prepCount}
+          timeLeft={brainDumpTimeLeft}
+          recognizedText={recognizedText}
         />
 
-        <main className="flex-1 flex flex-col relative overflow-hidden">
-          <header className="flex items-center gap-5 justify-between p-4 lg:p-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100">
-            <button
-              className="lg:hidden shrink-0 p-2 -ml-2 text-gray-700 hover:bg-gray-200 rounded-xl"
-              onClick={() => setIsSidebarOpen(true)}
-            >
-              <Menu className="w-7 h-7" />
-            </button>
-            <div className="flex-1 min-w-0 lg:max-w-2xl lg:mx-auto gap-3">
-              <TodayTimeboxDashboard
-                userName={userName}
-                todaySchedules={todaySchedules}
-                onTimeLoad={(start, end) => {
-                  setTodayStartTime(start);
-                  setTodayEndTime(end);
-                }}
-                isPremium={isPremium}
-              />
-            </div>
-          </header>
+        {isAiProcessing && (
+          <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-black/90 text-white px-8 py-4 rounded-full text-sm font-bold animate-bounce z-50 shadow-xl">
+            🧠 AI가 일정을 재배열 하는 중이에요...
+          </div>
+        )}
 
-          <section className="flex-1 overflow-y-auto p-4 lg:p-10 space-y-4 pb-40">
-            {renderCurrentView()}
-          </section>
-
-          {/* 모듈화된 브레인덤프 모달 */}
-          <BrainDumpModal
-            isOpen={isBrainDumping}
-            prepCount={prepCount}
-            timeLeft={brainDumpTimeLeft}
-            recognizedText={recognizedText}
-          />
-
-          {isAiProcessing && (
-            <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-black/90 text-white px-8 py-4 rounded-full text-sm font-bold animate-bounce z-50 shadow-xl">
-              🧠 AI가 일정을 재배열 하는 중이에요...
-            </div>
-          )}
-
-          {/* <div className="fixed bottom-8 right-6 lg:right-10 flex flex-col items-center bg-white/80 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white/40 z-20 gap-3"> */}
-          {/* <button
+        {/* <div className="fixed bottom-8 right-6 lg:right-10 flex flex-col items-center bg-white/80 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white/40 z-20 gap-3"> */}
+        {/* <button
             onClick={handleResetUsage}
             className="p-1.5 text-[10px] font-bold text-gray-400 bg-gray-100 rounded-full hover:bg-gray-200 hover:text-red-500 transition-colors"
             title="사용량 리셋 (개발자용)"
@@ -1125,14 +1121,12 @@ function MainDashboard({
             ↻ 리셋
           </button> */}
 
-          {/* <button
-              onClick={toggleBrainDump}
-              disabled={
-                !isPremium ||
-                isAiProcessing ||
-                (!isPremium && aiUsageCount >= 2)
-              }
-              className={`p-4 rounded-full transition-all flex justify-center items-center
+        {/* <button
+          onClick={toggleBrainDump}
+          disabled={
+            !isPremium || isAiProcessing || (!isPremium && aiUsageCount >= 2)
+          }
+          className={`p-4 rounded-full transition-all flex justify-center items-center
               ${
                 isBrainDumping
                   ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/50"
@@ -1146,104 +1140,105 @@ function MainDashboard({
                   : ""
               }
             `}
-              title={
-                !isPremium && aiUsageCount >= 2
-                  ? "오늘의 사용량(2회) 소진됐어요"
-                  : "AI 음성 일정 쪼개기"
-              }
-            >
-              <Mic
-                className={`w-7 h-7 text-white ${
-                  isAiProcessing ? "animate-spin" : ""
-                }`}
-              />
-            </button> */}
-          {/* 🔥 하단 고정 CTA 버튼 (토스 공식 폼 제출 UI) */}
-          <FixedBottomCTA.Double
-            leftButton={
-              <Button
-                color="dark"
-                variant="weak"
-                onClick={() => setIsModalOpen(true)}
-              >
-                새 일정 추가
-              </Button>
-            }
-            rightButton={
-              <Button
-                loading={isAiProcessing}
-                disabled={!isPremium || aiUsageCount >= 2 || isAiProcessing}
-                onClick={toggleBrainDump}
-              >
-                {isBrainDumping
-                  ? "마이크 끄기"
-                  : !isPremium
-                  ? "AI 쪼개기 (프리미엄)"
-                  : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
-              </Button>
-            }
+          title={
+            !isPremium && aiUsageCount >= 2
+              ? "오늘의 사용량(2회) 소진됐어요"
+              : "AI 음성 일정 쪼개기"
+          }
+        >
+          <Mic
+            className={`w-7 h-7 text-white ${
+              isAiProcessing ? "animate-spin" : ""
+            }`}
           />
-          {/* </div> */}
-          {/* 🔥 2안: 스나이퍼 모달 (극단적 포커스 뷰) */}
-          {showSniperModal && sniperTask && (
-            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-6 animate-in fade-in duration-300">
-              {/* 상단 경고 메시지 */}
-              {/* <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-widest text-center animate-pulse">
+        </button> */}
+        {/* 🔥 하단 고정 CTA 버튼 (토스 공식 폼 제출 UI) */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 flex gap-3 z-50 lg:max-w-2xl lg:mx-auto">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex-1 bg-gray-100 text-gray-800 py-4 rounded-2xl font-bold text-[15px] hover:bg-gray-200 transition-colors"
+          >
+            새 일정 추가
+          </button>
+          <button
+            disabled={!isPremium || aiUsageCount >= 2 || isAiProcessing}
+            onClick={toggleBrainDump}
+            className={`flex-1 py-4 rounded-2xl font-bold text-[15px] transition-all text-white ${
+              !isPremium || aiUsageCount >= 2 || isAiProcessing
+                ? "bg-gray-300 cursor-not-allowed"
+                : isBrainDumping
+                ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/40"
+                : "bg-[#007AFF] hover:bg-blue-600 shadow-lg shadow-blue-500/30"
+            }`}
+          >
+            {isAiProcessing
+              ? "AI 처리 중..."
+              : isBrainDumping
+              ? "마이크 끄기"
+              : !isPremium
+              ? "AI 쪼개기 (프리미엄)"
+              : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
+          </button>
+        </div>
+
+        {/* 🔥 2안: 스나이퍼 모달 (극단적 포커스 뷰) */}
+        {showSniperModal && sniperTask && (
+          <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-6 animate-in fade-in duration-300">
+            {/* 상단 경고 메시지 */}
+            {/* <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-widest text-center animate-pulse">
               딴생각 보다는 지금 이것부터 같이 해요.
             </h2> */}
-              <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-wide text-center animate-pulse">
-                지금은 이 일정에 집중해 볼까요?
-              </h2>
+            <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-wide text-center animate-pulse">
+              지금은 이 일정에 집중해 볼까요?
+            </h2>
 
-              {/* 거대한 1순위 카드 */}
-              <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-[0_0_80px_rgba(0,122,255,0.4)] flex flex-col items-center text-center transform transition-all scale-100 animate-in zoom-in-95 duration-500">
-                <span className="text-[#007AFF] text-xs font-bold tracking-widest uppercase mb-4 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
-                  Priority #1
-                </span>
+            {/* 거대한 1순위 카드 */}
+            <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-[0_0_80px_rgba(0,122,255,0.4)] flex flex-col items-center text-center transform transition-all scale-100 animate-in zoom-in-95 duration-500">
+              <span className="text-[#007AFF] text-xs font-bold tracking-widest uppercase mb-4 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
+                Priority #1
+              </span>
 
-                <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 leading-snug break-words">
-                  {sniperTask.title}
-                </h3>
+              <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 leading-snug break-words">
+                {sniperTask.title}
+              </h3>
 
-                {sniperTask.description && (
-                  <p className="text-gray-500 font-medium mb-10 text-base md:text-lg">
-                    {sniperTask.description}
-                  </p>
-                )}
+              {sniperTask.description && (
+                <p className="text-gray-500 font-medium mb-10 text-base md:text-lg">
+                  {sniperTask.description}
+                </p>
+              )}
 
-                <div className="w-full space-y-3">
-                  {/* 압도적인 크기의 시작 버튼 */}
-                  <button
-                    onClick={() => {
-                      setShowSniperModal(false);
-                      toggleFocus(sniperTask); // 🔥 아까 고친 '맨 위로 올리며 진행 중 탭 이동' 로직이 여기서 터짐!
-                    }}
-                    className="w-full bg-[#007AFF] text-white text-lg font-bold py-5 rounded-2xl shadow-lg shadow-blue-500/40 hover:bg-blue-600 transition-all flex items-center justify-center gap-3 hover:scale-[1.02]"
-                  >
-                    <Play className="w-6 h-6 fill-current" /> 지금 바로
-                    시작해요!
-                  </button>
+              <div className="w-full space-y-3">
+                {/* 압도적인 크기의 시작 버튼 */}
+                <button
+                  onClick={() => {
+                    setShowSniperModal(false);
+                    toggleFocus(sniperTask); // 🔥 아까 고친 '맨 위로 올리며 진행 중 탭 이동' 로직이 여기서 터짐!
+                  }}
+                  className="w-full bg-[#007AFF] text-white text-lg font-bold py-5 rounded-2xl shadow-lg shadow-blue-500/40 hover:bg-blue-600 transition-all flex items-center justify-center gap-3 hover:scale-[1.02]"
+                >
+                  <Play className="w-6 h-6 fill-current" /> 지금 바로 시작해요!
+                </button>
 
-                  {/* 도망갈 구멍 (작게) */}
-                  <button
-                    onClick={() => setShowSniperModal(false)}
-                    className="w-full text-gray-400 font-bold py-3 hover:text-gray-600 transition-colors text-sm"
-                  >
-                    닫기
-                  </button>
-                </div>
+                {/* 도망갈 구멍 (작게) */}
+                <button
+                  onClick={() => setShowSniperModal(false)}
+                  className="w-full text-gray-400 font-bold py-3 hover:text-gray-600 transition-colors text-sm"
+                >
+                  닫기
+                </button>
               </div>
             </div>
-          )}
-        </main>
+          </div>
+        )}
+      </main>
 
-        <AddTaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAdd={handleAddTask}
-        />
-      </div>
-    </TDSMobileAITProvider>
+      <AddTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAdd={handleAddTask}
+      />
+    </div>
   );
 }
 
