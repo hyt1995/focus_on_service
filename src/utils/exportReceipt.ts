@@ -196,6 +196,8 @@ export const exportReceipt = async ({
     `총 ${targetPages.length}장의 영수증 굽기를 시작합니다! 잠시만 기다려주세요 🐳`
   );
 
+  const currentTimestamp = Date.now();
+
   for (let i = 0; i < targetPages.length; i++) {
     const page = targetPages[i] as HTMLElement;
     const isFirstPage = i === 0;
@@ -281,7 +283,9 @@ export const exportReceipt = async ({
 
             reader.onloadend = async () => {
               const base64data = (reader.result as string).split(",")[1];
-              const fileName = `my_time_receipt_${i + 1}.webm`;
+              // const fileName = `my_time_receipt_${i + 1}.webm`;
+              // 🔥 핵심 수술 2: 타임다이브_13자리시간_페이지번호.webm
+              const fileName = `timedive_${currentTimestamp}_${i + 1}.webm`;
 
               // [PC 다운로드 테스트용]
               const link = document.createElement("a");
@@ -328,7 +332,9 @@ export const exportReceipt = async ({
           backgroundColor: "#171717",
         });
         const base64data = dataUrl.split(",")[1];
-        const fileName = `my_time_receipt_${i + 1}.png`;
+        // const fileName = `my_time_receipt_${i + 1}.png`;
+        // 🔥 핵심 수술 3: 타임다이브_13자리시간_페이지번호.png
+        const fileName = `timedive_${currentTimestamp}_${i + 1}.png`;
 
         // [PC 다운로드 테스트용]
         const link = document.createElement("a");

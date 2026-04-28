@@ -82,7 +82,7 @@ export default function BrainDumpModal({
     <BottomSheet open={isOpen} onClose={() => {}}>
       <div className="p-5 text-center">
         {/* 1. 모달 상단 (타이틀 및 시간) */}
-        <div className="flex justify-between items-center mb-2">
+        {/* <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9500] opacity-75"></span>
@@ -101,20 +101,42 @@ export default function BrainDumpModal({
               ? `${timeLeft}초 남음`
               : "연결 중..."}
           </p>
+        </div> */}
+        {/* 1. 모달 상단 (TDS 스타일 타이틀 및 시간) */}
+        <div className="flex justify-between items-end mb-4 px-1">
+          <h3 className="text-[#191F28] text-[20px] font-bold tracking-tight">
+            {prepCount !== null ? "마이크 켤 준비 중" : "말씀해 주세요"}
+          </h3>
+          <p className="text-[#3182F6] text-[15px] font-semibold">
+            {prepCount !== null
+              ? `${prepCount}초 후 시작`
+              : timeLeft !== null
+              ? `${timeLeft}초 남음`
+              : "연결 중..."}
+          </p>
         </div>
 
         {/* 2. 20초 진짜 녹음 중에만 보이는 주황색 진행바 */}
-        {timeLeft !== null && prepCount === null && (
+        {/* {timeLeft !== null && prepCount === null && (
           <div className="w-full bg-gray-100 h-1.5 rounded-full mb-4 overflow-hidden">
             <div
               className="bg-[#FF9500] h-full transition-all duration-1000 ease-linear"
               style={{ width: `${(timeLeft / 20) * 100}%` }}
             />
           </div>
+        )} */}
+        {/* 2. 20초 진짜 녹음 중에만 보이는 TDS 블루 진행바 */}
+        {timeLeft !== null && prepCount === null && (
+          <div className="w-full bg-[#F2F4F6] h-2 rounded-full mb-5 overflow-hidden">
+            <div
+              className="bg-[#3182F6] h-full transition-all duration-1000 ease-linear"
+              style={{ width: `${(timeLeft / 20) * 100}%` }}
+            />
+          </div>
         )}
 
         {/* 3. 중앙 안내 & 텍스트 영역 */}
-        <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 min-h-[80px] flex flex-col justify-center">
+        {/* <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 min-h-[80px] flex flex-col justify-center">
           {prepCount !== null ? (
             // 4초 카운트다운 화면
             <div className="text-center">
@@ -138,6 +160,35 @@ export default function BrainDumpModal({
               </p>
               <p className="text-gray-500 text-xs font-medium">
                 가장 먼저 해야 할 순서를 정리해 드릴게요.
+              </p>
+            </div>
+          )}
+        </div> */}
+        {/* 3. 중앙 안내 & 텍스트 영역 (TDS 그레이 박스) */}
+        <div className="bg-[#F2F4F6] p-5 rounded-[16px] min-h-[100px] flex flex-col items-center justify-center">
+          {prepCount !== null ? (
+            // 4초 카운트다운 화면
+            <div className="text-center">
+              <p className="text-[#3182F6] text-[40px] font-bold leading-none mb-1">
+                {prepCount}
+              </p>
+              <p className="text-[#6B7684] text-[15px] font-medium">
+                초 뒤에 녹음이 시작됩니다
+              </p>
+            </div>
+          ) : recognizedText ? (
+            // 사용자가 말한 텍스트 보여주기
+            <p className="text-[#191F28] text-[16px] font-medium break-words leading-relaxed text-center w-full">
+              "{recognizedText}"
+            </p>
+          ) : (
+            // 0초 땡! 하고 아직 말 안 했을 때 기본 화면
+            <div className="text-center space-y-1">
+              <p className="text-[#191F28] text-[16px] font-semibold">
+                생각나는 일정을 말씀해 주세요
+              </p>
+              <p className="text-[#6B7684] text-[14px] font-medium">
+                AI가 최우선 순위를 정리해 드립니다
               </p>
             </div>
           )}

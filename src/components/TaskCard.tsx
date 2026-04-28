@@ -100,56 +100,57 @@ export default function TaskCard({
       onDragEnter={() => (dragOverItemRef.current = index)}
       onDragEnd={onSort}
       onDragOver={e => e.preventDefault()}
-      className={`relative bg-white p-6 rounded-[24px] shadow-sm border transition-all duration-300 cursor-grab active:cursor-grabbing hover:shadow-md
-        ${
-          String(activeTaskId) === String(task.id)
-            ? "border-[#007AFF] shadow-[0_0_20px_rgba(0,122,255,0.15)] ring-1 ring-[#007AFF]/20"
-            : "border-gray-100"
-        }
-        ${isFaded ? "opacity-40" : "opacity-100"}
-      `}
+      // 🔥 패딩 축소 (p-5 -> p-4)
+      className={`relative bg-white p-4 rounded-[16px] transition-all duration-200 cursor-grab active:cursor-grabbing ${
+        String(activeTaskId) === String(task.id)
+          ? "border-[1.5px] border-[#3182F6] bg-[#F9FAFB] shadow-sm"
+          : "border border-[#F2F4F6] hover:border-[#E5E8EB]"
+      } ${isFaded ? "opacity-40" : "opacity-100"}`}
     >
-      {/* 🌟 수정 & 삭제 버튼 (간격 조절: gap-2) 🌟 */}
-      <div className="absolute -top-3 -right-3 flex items-center gap-2 z-10">
-        {/* 💡 크기 조절: w-24(너비), h-8(높이) / 여백 조절: mr-1 (오른쪽 마진) */}
-        <div className="relative w-24 h-8 mr-1 bg-white border border-gray-200 shadow-md rounded-full transition-all hover:border-[#007AFF]">
+      {/* 🌟 헤더 여백 축소 (mb-3 -> mb-2) 🌟 */}
+      <div className="flex justify-between items-center mb-2">
+        {/* 🔥 셀렉트 박스 높이 축소 (h-[32px] -> h-[28px]) */}
+        <div className="relative w-[84px] h-[28px] bg-[#F2F4F6] rounded-[6px] transition-colors hover:bg-[#E5E8EB]">
           <select
             value={task.status || "todo"}
             onChange={handleStatusChange}
             disabled={isUpdatingStatus}
-            className="w-full h-full pl-3 pr-6 text-[11px] font-bold text-gray-600 bg-transparent appearance-none outline-none cursor-pointer disabled:opacity-50 rounded-full"
+            className="w-full h-full pl-2 pr-5 text-[12px] font-semibold text-[#4E5968] bg-transparent appearance-none outline-none cursor-pointer disabled:opacity-50"
           >
             <option value="todo">진행 전</option>
             <option value="in-progress">진행 중</option>
             <option value="done">완료</option>
           </select>
-          {/* 화살표 아이콘 커스텀 */}
-          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-gray-400">
-            <ChevronDown size={14} />
+          <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-[#8B95A1]">
+            <ChevronDown size={12} />
           </div>
         </div>
-        <button
-          onClick={() => setIsEditingCard(true)}
-          className="p-2 bg-white border border-gray-200 shadow-md rounded-full text-gray-400 hover:text-[#007AFF] hover:bg-blue-50 transition-colors"
-          title="수정"
-        >
-          <Pencil size={16} />
-        </button>
-        <button
-          onClick={() => onDelete(task.id)}
-          className="p-2 bg-white border border-gray-200 shadow-md rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-          title="삭제"
-        >
-          <X size={18} />
-        </button>
+
+        <div className="flex items-center gap-0.5 -mr-1.5">
+          {/* 🔥 아이콘 크기 및 패딩 축소 */}
+          <button
+            onClick={() => setIsEditingCard(true)}
+            className="p-1.5 text-[#8B95A1] hover:text-[#3182F6] transition-colors rounded-lg"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={() => onDelete(task.id)}
+            className="p-1.5 text-[#8B95A1] hover:text-[#F04452] transition-colors rounded-lg"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       {/* <div className="mb-4 pr-5"> */}
       {/* 모바일 버전 제목 오른쪽 패딩 삭제 */}
-      <div className="mb-4">
+      {/* 🔥 하단 여백 축소 (mb-4 -> mb-2.5) */}
+      <div className="mb-2.5">
         {isEditingCard ? (
+          /* ... 수정 모드 폼은 그대로 유지 ... */
           <div
-            className="space-y-2 mb-4"
+            className="space-y-2 mb-2"
             onClick={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
           >
@@ -157,26 +158,26 @@ export default function TaskCard({
               type="text"
               value={editTitle}
               onChange={e => setEditTitle(e.target.value)}
-              className="w-full border border-[#007AFF] rounded-lg px-3 py-2 text-sm font-bold outline-none"
+              className="w-full border border-[#3182F6] rounded-[8px] px-3 py-1.5 text-[14px] font-bold outline-none"
               placeholder="제목"
               autoFocus
             />
             <textarea
               value={editDesc}
               onChange={e => setEditDesc(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none resize-none h-16"
+              className="w-full border border-[#F2F4F6] rounded-[8px] px-3 py-1.5 text-[12px] outline-none resize-none h-12"
               placeholder="상세 내용"
             />
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditingCard(false)}
-                className="flex-1 text-xs bg-gray-100 text-gray-600 py-1.5 rounded-md font-bold"
+                className="flex-1 text-[12px] bg-[#F2F4F6] text-[#4E5968] py-1.5 rounded-[6px] font-bold"
               >
                 취소
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="flex-1 text-xs bg-[#007AFF] text-white py-1.5 rounded-md font-bold"
+                className="flex-1 text-[12px] bg-[#3182F6] text-white py-1.5 rounded-[6px] font-bold"
               >
                 저장
               </button>
@@ -184,14 +185,14 @@ export default function TaskCard({
           </div>
         ) : (
           <>
-            <h3 className="text-lg font-bold leading-tight break-words text-gray-800">
+            {/* 🔥 폰트 크기 최적화 (text-lg -> text-[16px]) 및 색상 토스화 */}
+            <h3 className="text-[16px] font-bold leading-tight break-words text-[#191F28]">
               {task.title}
             </h3>
-            {/* 🔥 1줄 상세내역 + 꺾쇠 */}
             {task.description && (
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <p
-                  className={`text-sm text-gray-500 ${
+                  className={`text-[13px] text-[#6B7684] ${
                     isExpanded ? "" : "line-clamp-1 truncate"
                   }`}
                 >
@@ -199,7 +200,7 @@ export default function TaskCard({
                 </p>
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="flex items-center gap-1 text-[10px] font-bold text-[#007AFF] mt-1 bg-blue-50 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-bold text-[#3182F6] mt-1 bg-[#E8F3FF] px-2 py-0.5 rounded-full hover:bg-[#D3E4FF] transition-colors"
                 >
                   {isExpanded ? "접기" : "자세히 보기"}{" "}
                   {isExpanded ? (
@@ -214,27 +215,29 @@ export default function TaskCard({
         )}
       </div>
 
-      <div className="w-full bg-gray-100 h-3 rounded-full mb-3 overflow-hidden">
+      {/* 🌟 TDS 스타일: 솔리드 프로그레스 바 🌟 */}
+      {/* 🌟 바 두께(h-1.5) 및 여백(mb-1.5) 대폭 압축 🌟 */}
+      <div className="w-full bg-[#F2F4F6] h-1.5 rounded-full mb-1.5 overflow-hidden">
         <div
-          className="bg-gradient-to-r from-[#007AFF] to-[#5856D6] h-full transition-all duration-1000 ease-linear"
+          className="bg-[#3182F6] h-full transition-all duration-1000 ease-linear"
           style={{ width: `${getRealtimeProgress(task, currentTime)}%` }}
         />
       </div>
-
-      <div className="flex justify-between items-center text-xs font-medium text-gray-500 mb-6 px-1 tracking-wide">
-        <span className="text-left w-1/3">{startTimeStr}</span>
-        <span className="text-center w-1/3 font-bold text-gray-700">
-          {elapsedStr}
-        </span>
-        <span className="text-right w-1/3 text-[#007AFF]">{remainingStr}</span>
+      {/* 🔥 폰트(text-[11px]) 및 하단 여백(mb-3) 압축 */}
+      <div className="flex justify-between items-center text-[11px] font-semibold mb-3 px-1">
+        <span className="text-left w-1/3 text-[#8B95A1]">{startTimeStr}</span>
+        <span className="text-center w-1/3 text-[#191F28]">{elapsedStr}</span>
+        <span className="text-right w-1/3 text-[#3182F6]">{remainingStr}</span>
       </div>
 
-      <div className="flex justify-between items-center mt-2">
+      {/* 🔥 상단 여백 축소 (mt-1) */}
+      <div className="flex justify-between items-center mt-1">
         {isEditingDeadline ? (
           <input
             type="datetime-local"
             autoFocus
-            className="text-xs font-bold px-3 py-2 bg-white border-2 border-[#007AFF] rounded-md text-gray-800 outline-none shadow-sm"
+            // 🔥 패딩(px-2.5 py-1.5) 및 폰트(text-[12px]) 축소
+            className="text-[12px] font-semibold px-2.5 py-1.5 bg-[#F2F4F6] border border-transparent rounded-[6px] text-[#191F28] outline-none focus:ring-1 focus:ring-[#3182F6]"
             defaultValue={
               (task.deadline || "").includes(":")
                 ? task.deadline.replace(" ", "T")
@@ -255,10 +258,11 @@ export default function TaskCard({
         ) : (
           <span
             onClick={() => setIsEditingDeadline(true)}
-            className={`text-sm font-bold px-3 py-2.5 cursor-pointer rounded-lg transition-colors border ${
+            // 🔥 패딩(px-2.5 py-1.5) 및 폰트(text-[12px]) 축소
+            className={`text-[12px] font-semibold px-2.5 py-1.5 cursor-pointer rounded-[6px] transition-colors ${
               task.deadline === "D-Day"
-                ? "bg-red-50 text-red-500 border-red-200 hover:bg-red-100 animate-pulse"
-                : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-200"
+                ? "bg-[#FEF0F0] text-[#F04452] hover:bg-[#FDE2E2]"
+                : "bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB]"
             }`}
           >
             {task.deadline === "D-Day" ? "⏰ 시간 설정" : task.deadline}
@@ -267,19 +271,20 @@ export default function TaskCard({
 
         <button
           onClick={() => onToggleFocus(task)}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${
+          // 🔥 패딩(px-4 py-2), 둥글기(rounded-[8px]), 폰트(text-[13px]) 축소
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] text-[13px] font-bold transition-all ${
             String(activeTaskId) === String(task.id)
-              ? "bg-gray-800 text-white"
-              : "bg-white border border-gray-200 text-[#007AFF] hover:bg-gray-50"
+              ? "bg-[#3182F6] text-white shadow-[0_2px_8px_rgba(49,130,246,0.3)]"
+              : "bg-[#E8F3FF] text-[#3182F6] hover:bg-[#D3E4FF]"
           }`}
         >
           {String(activeTaskId) === String(task.id) ? (
             <>
-              <Square className="w-4 h-4 fill-current" /> PAUSE
+              <Square className="w-3.5 h-3.5 fill-current" /> PAUSE
             </>
           ) : (
             <>
-              <Play className="w-4 h-4 fill-current" /> START
+              <Play className="w-3.5 h-3.5 fill-current" /> START
             </>
           )}
         </button>

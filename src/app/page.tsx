@@ -189,6 +189,7 @@ function MainDashboard({
       const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
       const res = await fetch(apiUrl, {
         headers: { "x-user-name": encodeURIComponent(userName) },
+        cache: "no-store",
       });
       const data = await res.json();
 
@@ -214,6 +215,7 @@ function MainDashboard({
       const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
       const res = await fetch(apiUrl, {
         headers: { "x-user-name": encodeURIComponent(userName) },
+        cache: "no-store",
       });
       const data = await res.json();
       setAiUsageCount(Number(data.count) || 0);
@@ -250,6 +252,7 @@ function MainDashboard({
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "x-user-name": encodeURIComponent(userName) },
+        cache: "no-store",
       });
 
       if (res.ok) {
@@ -439,6 +442,7 @@ function MainDashboard({
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "x-user-name": encodeURIComponent(userName) },
+        cache: "no-store",
       });
 
       if (res.ok) {
@@ -555,6 +559,7 @@ function MainDashboard({
           "Content-Type": "application/json",
           "x-user-name": encodeURIComponent(userName),
         },
+        cache: "no-store",
         body: JSON.stringify({ text: finalText }),
       });
 
@@ -732,7 +737,9 @@ function MainDashboard({
 
       // 3️⃣ 백엔드(Vercel) 통신해서 딥그램 토큰 받아오기
       const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-      const res = await fetch(`${BASE_URL}/api/deepgram`);
+      const res = await fetch(`${BASE_URL}/api/deepgram`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error("토큰 발급 실패");
       deepgramTokenRef.current = data.token;
@@ -760,43 +767,100 @@ function MainDashboard({
   };
 
   // 🎙️ 2. 진짜 녹음 시작 (4초 끝나고 자동으로 불리는 함수)
+  // const startDeepgramRecording = async () => {
+  //   setBrainDumpTimeLeft(20); // 20초 카운트다운 시작!
+
+  //   try {
+  //     if (!streamRef.current || !socketRef.current)
+  //       throw new Error("마이크/소켓 미준비");
+  //     const socket = socketRef.current;
+
+  //     // 🔥 [핵심 3] 4초 뒤, 대기시켜놨던 마이크 소리를 딥그램으로 쏘기 시작
+  //     const startRecording = () => {
+  //       const mediaRecorder = new MediaRecorder(streamRef.current!);
+  //       mediaRecorderRef.current = mediaRecorder;
+  //       mediaRecorder.addEventListener("dataavailable", event => {
+  //         if (event.data.size > 0 && socket.readyState === 1) {
+  //           socket.send(event.data);
+  //         }
+  //       });
+  //       mediaRecorder.start(250);
+  //     };
+
+  //     // 이미 소켓이 열렸다면 즉시 쏘고, 아니라면 열리는 순간 쏜다
+  //     if (socket.readyState === 1) {
+  //       startRecording();
+  //     } else {
+  //       socket.onopen = startRecording;
+  //     }
+
+  //     // 글자 받아오기
+  //     socket.onmessage = message => {
+  //       const received = JSON.parse(message.data);
+  //       if (received.channel?.alternatives[0]) {
+  //         const transcript = received.channel.alternatives[0].transcript;
+  //         if (transcript) {
+  //           if (received.is_final)
+  //             finalTranscriptRef.current += transcript + " ";
+  //           const currentText =
+  //             finalTranscriptRef.current +
+  //             (received.is_final ? "" : transcript);
+  //           setRecognizedText(currentText);
+  //           recognizedTextRef.current = currentText;
+  //         }
+  //       }
+  //     };
+  //   } catch (err: any) {
+  //     console.error("녹음 시작 에러:", err);
+  //     alert("녹음을 시작하는 데 문제가 생겼어요. 다시 시도해 주세요.");
+  //     stopAndSendBrainDump();
+  //   }
+  // };
+
   const startDeepgramRecording = async () => {
-    setBrainDumpTimeLeft(20); // 20초 카운트다운 시작!
+    setBrainDumpTimeLeft(20);
 
     try {
-      // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // streamRef.current = stream;
+      if (!streamRef.current || !deepgramTokenRef.current)
+        throw new Error("마이크나 토큰 미준비");
 
-      // const socket = new WebSocket(
-      //   "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
-      //   ["token", deepgramTokenRef.current]
-      // );
-      // socketRef.current = socket;
+      const socket = new WebSocket(
+        "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
+        ["token", deepgramTokenRef.current]
+      );
+      socketRef.current = socket;
 
-      if (!streamRef.current || !socketRef.current)
-        throw new Error("마이크/소켓 미준비");
-      const socket = socketRef.current;
+      // 🌟 핵심 무기: 문이 열리기 전까지 오디오 조각을 담아둘 임시 대기실(Queue)
+      const audioQueue: Blob[] = [];
 
-      // 🔥 [핵심 3] 4초 뒤, 대기시켜놨던 마이크 소리를 딥그램으로 쏘기 시작
-      const startRecording = () => {
-        const mediaRecorder = new MediaRecorder(streamRef.current!);
-        mediaRecorderRef.current = mediaRecorder;
-        mediaRecorder.addEventListener("dataavailable", event => {
-          if (event.data.size > 0 && socket.readyState === 1) {
+      // 🚀 문이 열리든 말든, 20초 시작과 동시에 무조건 유저 목소리부터 녹음 시작!
+      const mediaRecorder = new MediaRecorder(streamRef.current!);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.addEventListener("dataavailable", event => {
+        if (event.data.size > 0) {
+          if (socket.readyState === 1) {
+            // 1. 문이 열려있으면 딥그램으로 바로 전송
             socket.send(event.data);
+          } else if (socket.readyState === 0) {
+            // 2. 문이 아직 열리는 중(Connecting)이라면 대기실에 안전하게 보관!
+            audioQueue.push(event.data);
           }
-        });
-        mediaRecorder.start(250);
+        }
+      });
+
+      // 0.25초 단위로 쪼개서 녹음 진행
+      mediaRecorder.start(250);
+
+      // 🎉 딥그램 서버 문이 열리는 순간!
+      socket.onopen = () => {
+        // 대기실에 모아둔 유저의 첫마디 오디오 조각들을 빛의 속도로 전부 밀어넣음 (유실률 0%)
+        while (audioQueue.length > 0) {
+          const chunk = audioQueue.shift();
+          if (chunk) socket.send(chunk);
+        }
       };
 
-      // 이미 소켓이 열렸다면 즉시 쏘고, 아니라면 열리는 순간 쏜다
-      if (socket.readyState === 1) {
-        startRecording();
-      } else {
-        socket.onopen = startRecording;
-      }
-
-      // 글자 받아오기
       socket.onmessage = message => {
         const received = JSON.parse(message.data);
         if (received.channel?.alternatives[0]) {
@@ -813,31 +877,14 @@ function MainDashboard({
         }
       };
 
-      // socket.onopen = () => {
-      //   const mediaRecorder = new MediaRecorder(stream);
-      //   mediaRecorderRef.current = mediaRecorder;
-      //   mediaRecorder.addEventListener("dataavailable", event => {
-      //     if (event.data.size > 0 && socket.readyState === 1)
-      //       socket.send(event.data);
-      //   });
-      //   mediaRecorder.start(250);
-      // };
-
-      // socket.onmessage = message => {
-      //   const received = JSON.parse(message.data);
-      //   if (received.channel?.alternatives[0]) {
-      //     const transcript = received.channel.alternatives[0].transcript;
-      //     if (transcript) {
-      //       if (received.is_final)
-      //         finalTranscriptRef.current += transcript + " ";
-      //       const currentText =
-      //         finalTranscriptRef.current +
-      //         (received.is_final ? "" : transcript);
-      //       setRecognizedText(currentText);
-      //       recognizedTextRef.current = currentText;
-      //     }
-      //   }
-      // };
+      socket.onerror = error => {
+        console.error("🚨 Deepgram WebSocket Error:", error);
+      };
+      socket.onclose = event => {
+        console.log(
+          `🔒 Deepgram WebSocket Closed: Code ${event.code}, Reason: ${event.reason}`
+        );
+      };
     } catch (err: any) {
       console.error("녹음 시작 에러:", err);
       alert("녹음을 시작하는 데 문제가 생겼어요. 다시 시도해 주세요.");
@@ -1070,13 +1117,13 @@ function MainDashboard({
           )}
 
           {/* <div className="fixed bottom-8 right-6 lg:right-10 flex flex-col items-center bg-white/80 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white/40 z-20 gap-3"> */}
-          <button
+          {/* <button
             onClick={handleResetUsage}
             className="p-1.5 text-[10px] font-bold text-gray-400 bg-gray-100 rounded-full hover:bg-gray-200 hover:text-red-500 transition-colors"
             title="사용량 리셋 (개발자용)"
           >
             ↻ 리셋
-          </button>
+          </button> */}
 
           {/* <button
               onClick={toggleBrainDump}

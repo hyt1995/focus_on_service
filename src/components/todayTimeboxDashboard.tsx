@@ -15,7 +15,8 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
   onTimeLoad,
   isPremium,
 }) => {
-  const [startTime, setStartTime] = useState("09:00");
+  // 🔥 기본 마감 시간을 실전 타임라인에 맞게 최적화
+  const [startTime, setStartTime] = useState("08:30");
   const [endTime, setEndTime] = useState("18:00");
   const [isEditing, setIsEditing] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -37,7 +38,7 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
     if (!userName) return;
     // 무료 사용자를 위한 서버 방어권
     if (!isPremium) {
-      const fetchedStart = "09:00";
+      const fetchedStart = "08:30";
       const fetchedEnd = "18:00";
       setStartTime(fetchedStart);
       setEndTime(fetchedEnd);
@@ -101,11 +102,11 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
   return (
     <div className="relative w-full z-10">
       <div
-        className="bg-white p-3 px-5 rounded-[20px] shadow-sm border border-gray-100 w-full cursor-pointer relative z-20"
+        className="bg-white p-4 rounded-[16px] border border-[#F2F4F6] w-full cursor-pointer relative z-20 transition-all hover:border-[#E5E8EB]"
         onClick={() => !isEditing && setIsEditing(true)}
       >
-        <p className="text-[10px] text-gray-400 font-bold mb-1 text-center tracking-wider">
-          {dateString} 마감 시간
+        <p className="text-[12px] text-[#8B95A1] font-semibold mb-2 text-center tracking-tight">
+          {dateString}
         </p>
 
         {isEditing ? (
@@ -117,51 +118,52 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
               type="time"
               value={startTime}
               onChange={e => setStartTime(e.target.value)}
-              className="border rounded px-2 py-1 text-xs"
+              className="bg-[#F2F4F6] text-[#191F28] rounded-[8px] px-3 py-1.5 text-[14px] outline-none focus:ring-1 focus:ring-[#3182F6]"
             />
-            <span className="text-gray-400 text-xs">~</span>
+            <span className="text-[#8B95A1] text-[14px] font-bold">~</span>
             <input
               type="time"
               value={endTime}
               onChange={e => setEndTime(e.target.value)}
-              className="border rounded px-2 py-1 text-xs"
+              className="bg-[#E8F3FF] text-[#3182F6] font-bold rounded-[8px] px-3 py-1.5 text-[14px] outline-none focus:ring-1 focus:ring-[#3182F6]"
             />
             <button
               onClick={saveSchedule}
-              className="bg-[#007AFF] text-white text-xs px-3 py-1 rounded-md font-bold"
+              className="bg-[#3182F6] text-white text-[13px] px-3.5 py-1.5 rounded-[8px] font-bold shadow-sm"
             >
               저장
             </button>
           </div>
         ) : (
-          <div className="w-full bg-gray-100 h-1.5 rounded-full mb-3 overflow-hidden">
+          <div className="w-full bg-[#F2F4F6] h-1.5 rounded-full mb-2 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-[#007AFF] to-[#5856D6] h-full transition-all duration-1000"
+              className="bg-[#3182F6] h-full transition-all duration-1000"
               style={{ width: `${progress}%` }}
             />
           </div>
         )}
 
         {!isEditing && (
-          <div className="flex justify-between items-center text-xs font-medium text-gray-500 tracking-wide px-1 relative">
-            <span className="text-left w-1/3">{startTime}</span>
-            <span className="text-center w-1/3 font-bold text-gray-700">
+          <div className="flex justify-between items-center text-[12px] font-semibold tracking-tight px-1 relative">
+            <span className="text-left w-1/3 text-[#8B95A1]">{startTime}</span>
+            <span className="text-center w-1/3 font-bold text-[#191F28]">
               {elapsedStr}
             </span>
-            <span className="text-right w-1/3 pr-6 text-[#007AFF]">
+            <span className="text-right w-1/3 pr-6 text-[#3182F6]">
               {remainingStr}
             </span>
+
             <button
-              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#007AFF] transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-[#8B95A1] hover:text-[#3182F6] transition-colors"
               onClick={e => {
                 e.stopPropagation();
                 setIsDropdownOpen(!isDropdownOpen);
               }}
             >
               {isDropdownOpen ? (
-                <ChevronUp size={20} />
+                <ChevronUp size={18} />
               ) : (
-                <ChevronDown size={20} />
+                <ChevronDown size={18} />
               )}
             </button>
           </div>
@@ -169,29 +171,30 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
       </div>
 
       {/* 🔽 꺾쇠를 누르면 펼쳐지는 오늘 일정 리스트 */}
+      {/* 🔽 꺾쇠를 누르면 펼쳐지는 TDS 플랫 스타일 오늘 일정 리스트 */}
       {isDropdownOpen && !isEditing && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[20px] shadow-lg border border-gray-100 p-4 z-10 animate-in slide-in-from-top-2">
-          <h4 className="text-xs font-bold text-gray-400 mb-3 ml-1">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#F9FAFB] rounded-[16px] border border-[#F2F4F6] shadow-sm p-4 z-10 animate-in slide-in-from-top-2 duration-200">
+          <h4 className="text-[12px] font-semibold text-[#8B95A1] mb-2 px-1">
             오늘 등록된 일정
           </h4>
           {todaySchedules.length > 0 ? (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {todaySchedules.map(s => (
                 <div
                   key={s.id}
-                  className="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl border border-gray-100"
+                  className="flex justify-between items-center bg-white p-3 rounded-[12px] border border-[#F2F4F6]"
                 >
-                  <span className="font-bold text-gray-700 text-sm truncate pr-2">
+                  <span className="font-semibold text-[#191F28] text-[14px] truncate pr-2">
                     {s.title}
                   </span>
-                  <span className="text-[#007AFF] font-bold text-xs shrink-0">
+                  <span className="text-[#3182F6] font-bold text-[13px] shrink-0">
                     {s.startTime} ~ {s.endTime}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-2">
+            <p className="text-[13px] text-[#8B95A1] font-medium text-center py-3">
               오늘 일정이 없습니다.
             </p>
           )}
