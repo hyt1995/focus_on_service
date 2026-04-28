@@ -17,5 +17,5 @@ export default defineConfig({
     },
   },
   permissions: [],
-  outdir: "output",
+  outdir: "out",
 });
