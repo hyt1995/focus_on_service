@@ -766,57 +766,6 @@ function MainDashboard({
     }
   };
 
-  // 🎙️ 2. 진짜 녹음 시작 (4초 끝나고 자동으로 불리는 함수)
-  // const startDeepgramRecording = async () => {
-  //   setBrainDumpTimeLeft(20); // 20초 카운트다운 시작!
-
-  //   try {
-  //     if (!streamRef.current || !socketRef.current)
-  //       throw new Error("마이크/소켓 미준비");
-  //     const socket = socketRef.current;
-
-  //     // 🔥 [핵심 3] 4초 뒤, 대기시켜놨던 마이크 소리를 딥그램으로 쏘기 시작
-  //     const startRecording = () => {
-  //       const mediaRecorder = new MediaRecorder(streamRef.current!);
-  //       mediaRecorderRef.current = mediaRecorder;
-  //       mediaRecorder.addEventListener("dataavailable", event => {
-  //         if (event.data.size > 0 && socket.readyState === 1) {
-  //           socket.send(event.data);
-  //         }
-  //       });
-  //       mediaRecorder.start(250);
-  //     };
-
-  //     // 이미 소켓이 열렸다면 즉시 쏘고, 아니라면 열리는 순간 쏜다
-  //     if (socket.readyState === 1) {
-  //       startRecording();
-  //     } else {
-  //       socket.onopen = startRecording;
-  //     }
-
-  //     // 글자 받아오기
-  //     socket.onmessage = message => {
-  //       const received = JSON.parse(message.data);
-  //       if (received.channel?.alternatives[0]) {
-  //         const transcript = received.channel.alternatives[0].transcript;
-  //         if (transcript) {
-  //           if (received.is_final)
-  //             finalTranscriptRef.current += transcript + " ";
-  //           const currentText =
-  //             finalTranscriptRef.current +
-  //             (received.is_final ? "" : transcript);
-  //           setRecognizedText(currentText);
-  //           recognizedTextRef.current = currentText;
-  //         }
-  //       }
-  //     };
-  //   } catch (err: any) {
-  //     console.error("녹음 시작 에러:", err);
-  //     alert("녹음을 시작하는 데 문제가 생겼어요. 다시 시도해 주세요.");
-  //     stopAndSendBrainDump();
-  //   }
-  // };
-
   const startDeepgramRecording = async () => {
     setBrainDumpTimeLeft(20);
 
@@ -971,8 +920,8 @@ function MainDashboard({
             </div>
           ) : (
             <>
-              {/* 3단 탭 UI */}
-              <div className="flex justify-center gap-2 my-6">
+              {/* 3단 탭 UI (위아래 여백 대폭 축소: my-6 -> my-2) */}
+              <div className="flex justify-center gap-2 my-2">
                 {[
                   { id: "todo", label: "진행 전" },
                   { id: "in-progress", label: "진행 중" },
@@ -981,12 +930,11 @@ function MainDashboard({
                   <Button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300
-                          ${
-                            activeTab === tab.id
-                              ? "bg-[#1C1C1E] text-white shadow-md"
-                              : "bg-white text-gray-400 border border-gray-200 hover:bg-gray-50"
-                          }`}
+                    className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? "bg-[#1C1C1E] text-white shadow-md"
+                        : "bg-white text-gray-400 border border-gray-200 hover:bg-gray-50"
+                    }`}
                   >
                     {tab.label}
                   </Button>
@@ -1116,54 +1064,13 @@ function MainDashboard({
             </div>
           )}
 
-          {/* <div className="fixed bottom-8 right-6 lg:right-10 flex flex-col items-center bg-white/80 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white/40 z-20 gap-3"> */}
-          {/* <button
-            onClick={handleResetUsage}
-            className="p-1.5 text-[10px] font-bold text-gray-400 bg-gray-100 rounded-full hover:bg-gray-200 hover:text-red-500 transition-colors"
-            title="사용량 리셋 (개발자용)"
-          >
-            ↻ 리셋
-          </button> */}
-
-          {/* <button
-              onClick={toggleBrainDump}
-              disabled={
-                !isPremium ||
-                isAiProcessing ||
-                (!isPremium && aiUsageCount >= 2)
-              }
-              className={`p-4 rounded-full transition-all flex justify-center items-center
-              ${
-                isBrainDumping
-                  ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/50"
-                  : "bg-[#FF9500] hover:scale-105 shadow-lg shadow-[#FF9500]/40"
-              }
-              ${
-                isAiProcessing ||
-                (!isPremium && aiUsageCount >= 2) ||
-                !isPremium
-                  ? "opacity-50 cursor-not-allowed !bg-gray-400 !shadow-none hover:scale-100"
-                  : ""
-              }
-            `}
-              title={
-                !isPremium && aiUsageCount >= 2
-                  ? "오늘의 사용량(2회) 소진됐어요"
-                  : "AI 음성 일정 쪼개기"
-              }
-            >
-              <Mic
-                className={`w-7 h-7 text-white ${
-                  isAiProcessing ? "animate-spin" : ""
-                }`}
-              />
-            </button> */}
           {/* 🔥 하단 고정 CTA 버튼 (토스 공식 폼 제출 UI) */}
           <FixedBottomCTA.Double
             leftButton={
               <Button
                 color="dark"
                 variant="weak"
+                size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
                 onClick={() => setIsModalOpen(true)}
               >
                 새 일정 추가
@@ -1171,6 +1078,7 @@ function MainDashboard({
             }
             rightButton={
               <Button
+                size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
                 loading={isAiProcessing}
                 disabled={!isPremium || aiUsageCount >= 2 || isAiProcessing}
                 onClick={toggleBrainDump}
@@ -1183,7 +1091,7 @@ function MainDashboard({
               </Button>
             }
           />
-          {/* </div> */}
+
           {/* 🔥 2안: 스나이퍼 모달 (극단적 포커스 뷰) */}
           {showSniperModal && sniperTask && (
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-6 animate-in fade-in duration-300">
