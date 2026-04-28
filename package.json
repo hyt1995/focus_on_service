@@ -5,7 +5,8 @@
   "scripts": {
     "_dev": "next dev --webpack",
     "dev": "granite dev",
-    "build": "ait build",
+    "_build": "ait build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "dev:app": "cross-env APP_ENV=dev cap sync && npx cap run android",

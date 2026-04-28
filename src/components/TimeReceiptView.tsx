@@ -31,7 +31,6 @@ export default function TimeReceiptView({
   userName,
   workingTime,
 }: TimeReceiptViewProps) {
-  console.log("11111111111111111111111111111111111111111111", tasks);
   const [isEditing, setIsEditing] = useState(true);
   const [draftText, setDraftText] = useState("");
   const [appliedText, setAppliedText] = useState("");

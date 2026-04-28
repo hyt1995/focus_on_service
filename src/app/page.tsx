@@ -22,7 +22,7 @@ import DailyView from "@/components/DailyView";
 // import { Capacitor } from "@capacitor/core";
 // import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import BrainDumpModal from "@/components/BrainDumpModal"; // 상단에 추가
-import TimeReceiptView from "./time-receipt/page";
+import TimeReceiptView from "@/components/TimeReceiptView";
 import Paywall from "@/components/Paywall";
 // 🔥 [TDS 추가] 토스 디자인 컴포넌트들을 불러와요
 import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
