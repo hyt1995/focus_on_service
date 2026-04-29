@@ -80,13 +80,13 @@ export default function LoginGate({
 
       const data = await res.json();
 
-      // 3. 백엔드가 토스에서 뜯어온(?) 유저 이름으로 앱 시작!
-      onLogin(data.userName);
-
-      // 필요하다면 브라우저에 임시 저장 (선택 사항)
       if (typeof window !== "undefined") {
         window.localStorage?.setItem("focus_user_name", data.userName);
+        window.localStorage?.setItem("focus_auth_token", data.token); // 토큰 저장
       }
+
+      // 3. 백엔드가 토스에서 뜯어온(?) 유저 이름으로 앱 시작!
+      onLogin(data.userName);
     } catch (error) {
       console.error("토스 로그인 에러:", error);
       alert("로그인 중 문제가 발생했어요. 다시 시도해 주세요.");

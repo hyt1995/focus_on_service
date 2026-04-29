@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Check, Trash2, X, Clock } from "lucide-react";
 import { BottomSheet, Button } from "@toss/tds-mobile";
+import { apiFetch } from "@/utils/apiClient"; // 🔥 공용 통신 모듈 불러오기!
 
 interface RoutineTemplate {
   id: string | number;
@@ -32,12 +33,7 @@ export default function DailyView({ userName }: { userName: string }) {
 
   const fetchRoutines = async () => {
     try {
-      const apiUrl = baseUrl
-        ? `${baseUrl}/api/daily/template`
-        : "/api/daily/template";
-      const res = await fetch(apiUrl, {
-        headers: { "x-user-name": encodeURIComponent(userName) },
-      });
+      const res = await apiFetch("/api/daily/template");
       if (res.ok) {
         const data = await res.json();
         setRoutines(data);
@@ -54,15 +50,8 @@ export default function DailyView({ userName }: { userName: string }) {
       routines.map(r => (r.id === id ? { ...r, isEnabled: !currentStatus } : r))
     );
     try {
-      const apiUrl = baseUrl
-        ? `${baseUrl}/api/daily/template`
-        : "/api/daily/template";
-      await fetch(apiUrl, {
+      await apiFetch("/api/daily/template", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-name": encodeURIComponent(userName),
-        },
         body: JSON.stringify({
           id,
           updatedFields: { isEnabled: !currentStatus },
@@ -78,14 +67,7 @@ export default function DailyView({ userName }: { userName: string }) {
     setRoutines(routines.filter(r => r.id !== id));
     try {
       // 🔥 수정: baseUrl 적용
-      const apiUrl = baseUrl
-        ? `${baseUrl}/api/daily/template?id=${id}`
-        : `/api/daily/template?id=${id}`;
-
-      await fetch(apiUrl, {
-        method: "DELETE",
-        headers: { "x-user-name": encodeURIComponent(userName) },
-      });
+      await apiFetch(`/api/daily/template?id=${id}`, { method: "DELETE" });
     } catch (err) {
       console.error("삭제 실패:", err);
     }
@@ -108,15 +90,8 @@ export default function DailyView({ userName }: { userName: string }) {
 
     setIsSubmitting(true);
     try {
-      const apiUrl = baseUrl
-        ? `${baseUrl}/api/daily/template`
-        : "/api/daily/template";
-      const res = await fetch(apiUrl, {
+      const res = await apiFetch("/api/daily/template", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-name": encodeURIComponent(userName),
-        },
         body: JSON.stringify({
           title: newTitle,
           desc: newDesc,

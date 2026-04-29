@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { apiFetch } from "@/utils/apiClient"; // 🔥 공용 통신 모듈 불러오기!
 
 interface Props {
   userName: string;
@@ -44,10 +45,7 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
       setEndTime(fetchedEnd);
       return;
     }
-    const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
-    fetch(apiUrl, {
-      headers: { "x-user-name": encodeURIComponent(userName) },
-    })
+    apiFetch("/api/schedule")
       .then(res => res.json())
       .then(data => {
         const fetchedStart = data.startTime || "09:00";
@@ -62,13 +60,8 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
   const saveSchedule = async () => {
     setIsEditing(false);
     if (!isPremium) return;
-    const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
-    await fetch(apiUrl, {
+    await apiFetch("/api/schedule", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({ startTime, endTime }),
     });
     // 🔥 4. 사용자가 직접 시간을 수정(저장)했을 때도 부모에게 새로 변경된 시간 전달!

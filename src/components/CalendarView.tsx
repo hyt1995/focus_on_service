@@ -1,18 +1,6 @@
 // src/components/CalendarView.tsx
 
 "use client"; // 🔥 [필수] 이거 없으면 배포 시 달력 터집니다!
-
-// import React, { useState } from "react";
-// import {
-//   X,
-//   ChevronLeft,
-//   ChevronRight,
-//   Plus,
-//   ChevronDown,
-//   ChevronUp,
-//   Trash2,
-//   Pencil,
-// } from "lucide-react";
 import React, { useState } from "react";
 import {
   X,
