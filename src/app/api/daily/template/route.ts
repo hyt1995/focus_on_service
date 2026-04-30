@@ -1,6 +1,7 @@
 // /src/app/api/daily/template/route.ts
 
 import { NextResponse } from "next/server";
+import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
 // 네가 만든 dataService에서 방금 추가한 함수들을 불러온다. (경로 주의)
 import {
   getAllDailyTemplates,
@@ -11,20 +12,17 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// 인증 미들웨어: 네가 만든 방식 그대로 사용
-function getUser(request: Request) {
-  const userName = request.headers.get("x-user-name");
-  if (typeof userName !== "string") throw new Error("이름이 없습니다.");
-  const decodeUserName = decodeURIComponent(userName);
-  if (!decodeUserName) throw new Error("Unauthorized");
-  return decodeUserName;
-}
-
 // 1. 조회 (GET)
 export async function GET(request: Request) {
   try {
-    const userName = getUser(request);
-    const templates = await getAllDailyTemplates(userName);
+    // 🔥 getUser 대신 verifyUser로 인증하고 user.uid 전달
+    const user = await verifyUser(request);
+    if (!user)
+      return NextResponse.json(
+        { error: "로그인이 필요합니다." },
+        { status: 401 }
+      );
+    const templates = await getAllDailyTemplates(user.uid);
     return NextResponse.json(templates);
   } catch (e: any) {
     return NextResponse.json(
@@ -37,11 +35,17 @@ export async function GET(request: Request) {
 // 2. 추가 (POST) - 비즈니스 로직(5개 제한) 적용
 export async function POST(request: Request) {
   try {
-    const userName = getUser(request);
+    // 🔥 verifyUser로 인증 적용
+    const user = await verifyUser(request);
+    if (!user)
+      return NextResponse.json(
+        { error: "로그인이 필요합니다." },
+        { status: 401 }
+      );
     const templateData = await request.json();
 
     // 현재 저장된 템플릿 개수 가져오기
-    const currentTemplates = await getAllDailyTemplates(userName);
+    const currentTemplates = await getAllDailyTemplates(user.uid);
     const MAX_FREE_SLOTS = 5;
 
     // TODO: 프리미엄 유저 검증 로직 추가. 일단은 모두 5개 제한.
@@ -53,7 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const saved = await saveDailyTemplate(userName, templateData);
+    const saved = await saveDailyTemplate(user.uid, templateData);
     return NextResponse.json(saved, { status: 201 });
   } catch (e: any) {
     return NextResponse.json(
@@ -66,10 +70,16 @@ export async function POST(request: Request) {
 // 3. 수정 (PUT)
 export async function PUT(request: Request) {
   try {
-    const userName = getUser(request);
+    // 🔥 verifyUser로 인증 적용
+    const user = await verifyUser(request);
+    if (!user)
+      return NextResponse.json(
+        { error: "로그인이 필요합니다." },
+        { status: 401 }
+      );
     const { id, updatedFields } = await request.json();
 
-    const updated = await updateDailyTemplate(userName, id, updatedFields);
+    const updated = await updateDailyTemplate(user.uid, id, updatedFields);
 
     if (!updated) {
       return NextResponse.json(
@@ -87,13 +97,19 @@ export async function PUT(request: Request) {
 // 4. 삭제 (DELETE)
 export async function DELETE(request: Request) {
   try {
-    const userName = getUser(request);
+    // 🔥 verifyUser로 인증 적용
+    const user = await verifyUser(request);
+    if (!user)
+      return NextResponse.json(
+        { error: "로그인이 필요합니다." },
+        { status: 401 }
+      );
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
     if (!id) throw new Error("삭제할 ID가 없습니다.");
 
-    await deleteDailyTemplate(userName, id);
+    await deleteDailyTemplate(user.uid, id);
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json(

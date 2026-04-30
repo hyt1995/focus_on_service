@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
 
 export async function GET(request: Request) {
-  const userName = request.headers.get("x-user-name");
-  if (!userName)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const decodedName = decodeURIComponent(userName);
+  // 🔥 1. 낡은 x-user-name 방식 대신 토큰 해독기로 인증!
+  const user = await verifyUser(request);
+  if (!user)
+    return NextResponse.json(
+      { error: "Unauthorized: 유효하지 않은 토큰입니다." },
+      { status: 401 }
+    );
 
   try {
-    const docRef = doc(db, "users", decodedName);
+    const docRef = doc(db, "users", user.uid);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists() && docSnap.data().settings) {
@@ -26,14 +30,17 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const userName = request.headers.get("x-user-name");
-  if (!userName)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const decodedName = decodeURIComponent(userName);
+  // 🔥 1. 낡은 x-user-name 방식 대신 토큰 해독기로 인증!
+  const user = await verifyUser(request);
+  if (!user)
+    return NextResponse.json(
+      { error: "Unauthorized: 유효하지 않은 토큰입니다." },
+      { status: 401 }
+    );
   const data = await request.json();
 
   try {
-    const docRef = doc(db, "users", decodedName);
+    const docRef = doc(db, "users", user.uid);
     // 🔥 settings 객체 안에 묶어서 저장!
     await setDoc(
       docRef,

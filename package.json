@@ -22,6 +22,7 @@
     "@google/generative-ai": "^0.24.1",
     "@toss/tds-mobile": "^2.3.0",
     "@toss/tds-mobile-ait": "^2.3.0",
+    "axios": "^1.15.2",
     "dotenv": "^17.4.2",
     "firebase": "^12.10.0",
     "firebase-admin": "^13.8.0",

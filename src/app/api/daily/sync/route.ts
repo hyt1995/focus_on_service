@@ -3,20 +3,22 @@ import {
   getAllDailyTemplates,
   saveMultipleTasks,
 } from "../../../../lib/dataService";
+import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
 
 export async function POST(request: Request) {
   try {
-    const rawUserName = request.headers.get("x-user-name");
-    if (!rawUserName)
+    // 🔥 1. 낡은 x-user-name 대신 토큰 해독기로 인증!
+    const user = await verifyUser(request);
+    if (!user)
       return NextResponse.json(
-        { error: "로그인이 필요합니다." },
+        { error: "Unauthorized: 유효하지 않은 토큰입니다." },
         { status: 401 }
       );
 
-    const userName = decodeURIComponent(rawUserName);
-    const templates = await getAllDailyTemplates(userName);
-    const activeTemplates = templates.filter((t: any) => t.isEnabled);
-
+    const templates = await getAllDailyTemplates(user.uid);
+    const activeTemplates = templates.filter(
+      (t: any) => t.isEnabled === true || String(t.isEnabled) === "true"
+    );
     if (activeTemplates.length === 0) {
       return NextResponse.json({ message: "동기화할 루틴이 없습니다." });
     }
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
       order: index, // 🔥 순서값 부여!
     }));
 
-    const updatedTasks = await saveMultipleTasks(userName, newTasks);
+    const updatedTasks = await saveMultipleTasks(user.uid, newTasks);
     return NextResponse.json(updatedTasks);
   } catch (error) {
     return NextResponse.json({ error: "서버 처리 실패" }, { status: 500 });

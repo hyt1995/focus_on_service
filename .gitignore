@@ -45,3 +45,6 @@ next-env.d.ts
 /scripts
 .granite
 time-dive.ait
+
+timeDiveMtlsAuth_private.key
+timeDiveMtlsAuth_public.crt

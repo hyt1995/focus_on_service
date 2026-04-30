@@ -1,3 +1,5 @@
+// src/lib/dataService.ts
+
 import { db } from "./firebase";
 import {
   doc,
@@ -24,8 +26,8 @@ import {
 // ==========================================
 
 // 모든 태스크 가져오기 (order 기준 정렬)
-export async function getAllTasks(userName: string) {
-  const tasksRef = collection(db, "users", userName, "tasks");
+export async function getAllTasks(uid: string) {
+  const tasksRef = collection(db, "Users", uid, "tasks");
   const q = query(tasksRef, orderBy("order", "asc"));
   const querySnapshot = await getDocs(q);
 
@@ -37,12 +39,12 @@ export async function getAllTasks(userName: string) {
 
 // 태스크 단건 저장
 // src/lib/dataService.ts 내부의 saveTask 함수 수정
-export async function saveTask(userName: string, newTask: any) {
+export async function saveTask(uid: string, newTask: any) {
   const taskId = String(newTask.id || Date.now());
-  const taskRef = doc(db, "users", userName, "tasks", taskId);
+  const taskRef = doc(db, "Users", uid, "tasks", taskId);
 
   // 🌟 현재 저장된 태스크 개수를 파악해서 마지막 순서로 배치 (비용 최적화 위해 간단히 처리)
-  const existingTasks = await getAllTasks(userName);
+  const existingTasks = await getAllTasks(uid);
   const nextOrder = existingTasks.length;
 
   const taskData = {
@@ -57,28 +59,28 @@ export async function saveTask(userName: string, newTask: any) {
 
 // 태스크 단건 수정 (핀셋 업데이트 - 요금 절감 핵심)
 export async function updateTask(
-  userName: string,
+  uid: string,
   id: number | string,
   updatedFields: any
 ) {
-  const taskRef = doc(db, "users", userName, "tasks", String(id));
+  const taskRef = doc(db, "Users", uid, "tasks", String(id));
   await updateDoc(taskRef, updatedFields);
   return { id, ...updatedFields };
 }
 
 // 태스크 단건 삭제
-export async function deleteTask(userName: string, id: number | string) {
-  const taskRef = doc(db, "users", userName, "tasks", String(id));
+export async function deleteTask(uid: string, id: number | string) {
+  const taskRef = doc(db, "Users", uid, "tasks", String(id));
   await deleteDoc(taskRef);
   return true;
 }
 
 // 순서 변경 (Batch 처리 - 여러 개를 한 번에 수정해도 요금 효율적)
-export async function reorderTasks(userName: string, reorderedTasks: any[]) {
+export async function reorderTasks(uid: string, reorderedTasks: any[]) {
   const batch = writeBatch(db);
 
   reorderedTasks.forEach((task, index) => {
-    const taskRef = doc(db, "users", userName, "tasks", String(task.id));
+    const taskRef = doc(db, "Users", uid, "tasks", String(task.id));
     batch.update(taskRef, { order: index });
   });
 
@@ -87,11 +89,11 @@ export async function reorderTasks(userName: string, reorderedTasks: any[]) {
 }
 
 // 여러 태스크 한 번에 저장 (데일리 루틴 동기화용)
-export async function saveMultipleTasks(userName: string, newTasks: any[]) {
+export async function saveMultipleTasks(uid: string, newTasks: any[]) {
   const batch = writeBatch(db);
 
   newTasks.forEach(task => {
-    const taskRef = doc(db, "users", userName, "tasks", String(task.id));
+    const taskRef = doc(db, "Users", uid, "tasks", String(task.id));
     batch.set(taskRef, task);
   });
 
@@ -103,15 +105,15 @@ export async function saveMultipleTasks(userName: string, newTasks: any[]) {
 // 2. 데일리 루틴(Daily Templates) 관련 서비스
 // ==========================================
 
-export async function getAllDailyTemplates(userName: string) {
-  const routinesRef = collection(db, "users", userName, "routines");
+export async function getAllDailyTemplates(uid: string) {
+  const routinesRef = collection(db, "Users", uid, "routines");
   const querySnapshot = await getDocs(routinesRef);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-export async function saveDailyTemplate(userName: string, newTemplate: any) {
+export async function saveDailyTemplate(uid: string, newTemplate: any) {
   const routineId = String(Date.now());
-  const routineRef = doc(db, "users", userName, "routines", routineId);
+  const routineRef = doc(db, "Users", uid, "routines", routineId);
 
   const data = {
     ...newTemplate,
@@ -125,20 +127,17 @@ export async function saveDailyTemplate(userName: string, newTemplate: any) {
 }
 
 export async function updateDailyTemplate(
-  userName: string,
+  uid: string,
   id: string | number,
   updatedFields: any
 ) {
-  const routineRef = doc(db, "users", userName, "routines", String(id));
+  const routineRef = doc(db, "Users", uid, "routines", String(id));
   await updateDoc(routineRef, updatedFields);
   return { id, ...updatedFields };
 }
 
-export async function deleteDailyTemplate(
-  userName: string,
-  id: string | number
-) {
-  const routineRef = doc(db, "users", userName, "routines", String(id));
+export async function deleteDailyTemplate(uid: string, id: string | number) {
+  const routineRef = doc(db, "Users", uid, "routines", String(id));
   await deleteDoc(routineRef);
   return true;
 }

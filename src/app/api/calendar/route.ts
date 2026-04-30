@@ -9,19 +9,23 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
+import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
 
 // 🔥 1. 캐싱 절대 금지 (새로고침 시 무조건 DB 찌름)
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const userName = request.headers.get("x-user-name");
-  if (!userName)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const decodedName = decodeURIComponent(userName);
+  // 🔥 1. 낡은 x-user-name 방식 대신 토큰 해독기로 인증!
+  const user = await verifyUser(request);
+  if (!user)
+    return NextResponse.json(
+      { error: "Unauthorized: 유효하지 않은 토큰입니다." },
+      { status: 401 }
+    );
 
   try {
     // 🌟 2. 새로운 방(calendar_events)에서 날짜순으로 가져옴
-    const colRef = collection(db, "users", decodedName, "calendar_events");
+    const colRef = collection(db, "users", user.uid, "calendar_events");
     const q = query(colRef, orderBy("date", "asc"));
     const querySnapshot = await getDocs(q);
 
@@ -37,14 +41,17 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const userName = request.headers.get("x-user-name");
-  if (!userName)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const decodedName = decodeURIComponent(userName);
+  // 🔥 1. 낡은 x-user-name 방식 대신 토큰 해독기로 인증!
+  const user = await verifyUser(request);
+  if (!user)
+    return NextResponse.json(
+      { error: "Unauthorized: 유효하지 않은 토큰입니다." },
+      { status: 401 }
+    );
   const { schedules } = await request.json();
 
   try {
-    const colRef = collection(db, "users", decodedName, "calendar_events");
+    const colRef = collection(db, "users", user.uid, "calendar_events");
 
     // 🌟 3. 서브 컬렉션 Batch 업서트 (통신 비용 최소화)
     const snapshot = await getDocs(colRef);

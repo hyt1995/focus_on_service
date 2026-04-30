@@ -145,6 +145,7 @@ import { getAllTasks, saveTask } from "@/lib/dataService";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error("GEMINI_API_KEY 환경 변수가 누락되었습니다.");
@@ -160,14 +161,14 @@ function getTodayKST() {
 
 export async function POST(request: Request) {
   try {
-    const rawUserName = request.headers.get("x-user-name");
-    if (!rawUserName)
+    // 🔥 1. 낡은 x-user-name 방식 대신 토큰 해독기로 인증!
+    const user = await verifyUser(request);
+    if (!user) {
       return NextResponse.json(
-        { error: "로그인이 필요합니다." },
+        { error: "Unauthorized: 유효하지 않은 토큰입니다." },
         { status: 401 }
       );
-
-    const userName = decodeURIComponent(rawUserName);
+    }
     const { text } = await request.json();
     const today = getTodayKST();
 
@@ -180,7 +181,7 @@ export async function POST(request: Request) {
 
     // 🌟 1. DB 단일화 (Single Source of Truth) & 비용 절감 (Read 1회)
     // users 컬렉션 하나만 읽어서 프리미엄 여부와 사용량을 동시에 확인해!
-    const userRef = doc(db, "users", userName);
+    const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
 
     let isPremium = false;
@@ -213,7 +214,7 @@ export async function POST(request: Request) {
     }
 
     // 🌟 3. 기존 데이터 가져오기 및 AI용 번호표 세팅 (수정 없음)
-    const allTasks = await getAllTasks(userName);
+    const allTasks = await getAllTasks(user.uid);
     const activeTasks = allTasks.filter((t: any) => t.status !== "done");
     const taskMap = new Map();
     const promptTasks = activeTasks.map((t: any, idx: number) => {
@@ -268,7 +269,7 @@ export async function POST(request: Request) {
         createdAt: today,
         order: 0,
       };
-      sniperTask = await saveTask(userName, newTaskObj);
+      sniperTask = await saveTask(user.uid, newTaskObj);
     } else {
       sniperTask = taskMap.get(parsedData.refId);
       if (!sniperTask) throw new Error("AI가 잘못된 ID를 반환했습니다.");
