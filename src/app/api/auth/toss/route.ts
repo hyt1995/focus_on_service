@@ -7,8 +7,11 @@ import path from "path";
 import https from "https";
 import axios from "axios";
 
+// 🔥 1. Vercel 빌드 봇 접근 차단! (이 페이지는 100% 동적으로만 작동함)
+export const dynamic = "force-dynamic";
+
 // 1. 파이어베이스 어드민 초기화
-if (!admin.apps.length) {
+if (!admin.apps.length && process.env.FIREBASE_PRIVATE_KEY) {
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
