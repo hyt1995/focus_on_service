@@ -9,8 +9,8 @@ const nextConfig = {
   // 터미널에서 IS_EXPORT=true npm run build 칠 때만 export 모드가 됨
   // output: isExport ? "export" : undefined,
   // output: undefined,
-  // output: "export", // 이렇게 작동해야함
-  output: undefined,
+  output: "export", // 이렇게 작동해야함
+  // output: undefined,
 
   // 2. [핵심 수술] 토스 앱에서 Vercel API로 보낸 요청을 허용하는 CORS 설정
   async headers() {
