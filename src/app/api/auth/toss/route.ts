@@ -20,15 +20,14 @@ if (!admin.apps.length && process.env.FIREBASE_PRIVATE_KEY) {
     }),
   });
 }
-const db = admin.firestore();
 
 // JWT 비밀키
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "time-dive-super-secret-key-2026"
-);
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function POST(req: Request) {
   try {
+    const db = admin.firestore();
+
     const { authorizationCode, referrer } = await req.json();
 
     if (!authorizationCode) {
