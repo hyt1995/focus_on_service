@@ -1,52 +1,4 @@
-// "use client";
-
-// import React, { useState } from "react";
-
-// interface LoginGateProps {
-//   onLogin: (name: string) => void;
-// }
-
-// export default function LoginGate({ onLogin }: LoginGateProps) {
-//   const [loginInput, setLoginInput] = useState("");
-
-//   const handleLogin = () => {
-//     if (!loginInput.trim()) return;
-//     if (typeof window !== "undefined") {
-//       window.localStorage?.setItem("focus_user_name", loginInput.trim());
-//     }
-//     // localStorage.setItem("focus_user_name", loginInput.trim());
-//     onLogin(loginInput.trim());
-//   };
-
-//   return (
-//     <div className="flex h-screen bg-[#F9F9FB] items-center justify-center p-4">
-//       <div className="bg-white p-8 rounded-[32px] shadow-2xl max-w-sm w-full text-center border border-gray-100">
-//         <h1 className="text-4xl font-black text-[#007AFF] mb-2 tracking-tighter">
-//           FOCUS
-//         </h1>
-//         <p className="text-gray-400 mb-8 text-sm font-medium">
-//           생존을 위한 몰입 관리를 시작합니다.
-//         </p>
-//         <div className="space-y-4">
-//           <input
-//             type="text"
-//             className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-center font-bold focus:outline-none focus:ring-2 focus:ring-[#007AFF] transition-all"
-//             placeholder="이름(닉네임)을 입력하세요"
-//             value={loginInput}
-//             onChange={e => setLoginInput(e.target.value)}
-//             onKeyDown={e => e.key === "Enter" && handleLogin()}
-//           />
-//           <button
-//             onClick={handleLogin}
-//             className="w-full py-4 bg-[#007AFF] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-600 active:scale-[0.98] transition-all"
-//           >
-//             입장하기
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
+// src/components/loginGate.tsx
 
 "use client";
 
@@ -65,19 +17,38 @@ export default function LoginGate({
   const handleTossLogin = async () => {
     setIsLoading(true);
     try {
-      // 1. 토스 앱에 "로그인 화면 띄워줘!" 요청 (10분짜리 단기 인가 코드 발급)
-      const { authorizationCode, referrer } = await appLogin();
+      let authCode = "";
+      let reqReferrer = "";
 
-      // 2. 발급받은 인가 코드를 우리 Vercel 백엔드로 은밀하게 전송!
+      // 🌟 1. 환경 검사: 현재 토스 앱 내부인가? PC(로컬) 브라우저인가?
+      // 토스 앱 웹뷰는 userAgent에 'Toss'라는 문자열을 포함합니다.
+      const isTossApp =
+        typeof window !== "undefined" && navigator.userAgent.includes("Toss");
+
+      if (isTossApp) {
+        // [실제 토스 환경] 공식 프레임워크를 통해 진짜 인가 코드 발급
+        const { authorizationCode, referrer } = await appLogin();
+        authCode = authorizationCode;
+        reqReferrer = referrer || "toss_app";
+      } else {
+        // [로컬 PC 환경] 🛠️ 개발자 우회로 발동!
+        console.log("🛠️ [로컬 테스트] 가짜 로그인 인가 코드를 발급합니다.");
+        authCode = "LOCAL_TEST_CODE";
+        reqReferrer = "local_test";
+      }
+
+      // 2. 발급받은 인가 코드(진짜 혹은 가짜)를 우리 Vercel 백엔드로 은밀하게 전송!
       const apiUrl = baseUrl ? `${baseUrl}/api/auth/toss` : "/api/auth/toss";
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ authorizationCode, referrer }),
+        body: JSON.stringify({
+          authorizationCode: authCode,
+          referrer: reqReferrer,
+        }),
       });
 
       if (!res.ok) throw new Error("서버 로그인 처리 실패");
-
       const data = await res.json();
 
       if (typeof window !== "undefined") {
@@ -85,7 +56,7 @@ export default function LoginGate({
         window.localStorage?.setItem("focus_auth_token", data.token); // 토큰 저장
       }
 
-      // 3. 백엔드가 토스에서 뜯어온(?) 유저 이름으로 앱 시작!
+      // 3. 백엔드가 토스에서 뜯어온(?) 혹은 가짜로 만들어준 유저 이름으로 앱 시작!
       onLogin(data.userName);
     } catch (error) {
       console.error("토스 로그인 에러:", error);
@@ -104,7 +75,6 @@ export default function LoginGate({
         <p className="text-gray-500 font-medium mb-10 text-sm">
           당신의 하루를 완벽하게 조준하세요
         </p>
-
         <button
           onClick={handleTossLogin}
           disabled={isLoading}
