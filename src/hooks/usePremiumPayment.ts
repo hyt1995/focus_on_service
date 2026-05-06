@@ -116,7 +116,7 @@ export function usePremiumPayment(onUpgrade?: () => void) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("focus_auth_token")}`,
         },
         body: JSON.stringify({ paymentKey, orderId: uniqueOrderId, amount }),
       });
