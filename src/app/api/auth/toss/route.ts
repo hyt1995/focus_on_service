@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       );
 
       const encryptedData = userRes.data.encryptedData || userRes.data;
-      const decryptKey = process.env.TOSS_DECRYPT_KEY || "";
+      const decryptKey = process.env.TOSS_ADDITIONAL_AUTHENTICATED_DATA || "";
 
       const key = Buffer.from(decryptKey.substring(0, 32), "utf-8");
       const iv = Buffer.from(decryptKey.substring(32, 48), "utf-8");
