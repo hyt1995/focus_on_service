@@ -111,14 +111,23 @@ export function usePremiumPayment(onUpgrade?: () => void) {
         paymentKey = "LOCAL_TEST_PAYMENT_KEY"; // 이 암호를 백엔드가 알아듣게 할 거네!
       }
 
-      // 🌟 2. 얻어낸 영수증(진짜든 가짜든)을 우리 백엔드로 보내서 검증 요청!
-      const response = await fetch("/api/payments/confirm", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const token =
+        typeof window !== "undefined"
+          ? window.localStorage?.getItem("focus_auth_token")
+          : "";
+
+      const response = await fetch(`${baseUrl}/api/payments/confirm`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("focus_auth_token")}`,
+          Authorization: `Bearer ${token}`, // 🔥 통행증 잊지 말기!
         },
-        body: JSON.stringify({ paymentKey, orderId: uniqueOrderId, amount }),
+        body: JSON.stringify({
+          paymentKey,
+          orderId: uniqueOrderId,
+          amount,
+        }),
       });
 
       if (response.ok) {
