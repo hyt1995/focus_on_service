@@ -1,4 +1,5 @@
 // src/app/api/payments/confirm/route.ts
+export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase"; // 🌟 자네의 기존 설정 파일!
@@ -7,7 +8,6 @@ import axios from "axios";
 import https from "https";
 import { jwtVerify } from "jose";
 
-export const dynamic = "force-dynamic";
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function POST(req: Request) {

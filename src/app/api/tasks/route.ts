@@ -1,4 +1,5 @@
 // src/app/api/tasks/route.ts
+export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import {
@@ -8,8 +9,6 @@ import {
   updateTask,
 } from "../../../lib/dataService";
 import { verifyUser } from "@/utils/auth"; // 🔥 1. 우리가 만든 토큰 해독기 추가
-
-export const dynamic = "force-dynamic";
 
 // function getUser(request: Request) {
 //   const userName = request.headers.get("x-user-name");

@@ -1,4 +1,6 @@
 // src/app/api/tasks/audio/route.ts
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 // 경로 주의: audio 폴더가 한 뎁스 더 깊으므로 ../ 가 4개입니다.
 import { updateTask } from "../../../../lib/dataService";

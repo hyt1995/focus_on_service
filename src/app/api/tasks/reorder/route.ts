@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { reorderTasks } from "@/lib/dataService";
 import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     // 🔥 낡은 x-user-name 방식 대신 토큰 해독기로 인증!

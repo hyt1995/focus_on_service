@@ -1,5 +1,7 @@
 // src/app/api/auth/toss/route.ts
 
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase"; // 🌟 자네의 기존 설정 파일!
 import { doc, setDoc } from "firebase/firestore"; // 🌟 프론트엔드용 SDK 함수
@@ -8,7 +10,6 @@ import crypto from "crypto";
 import https from "https";
 import axios from "axios";
 
-export const dynamic = "force-dynamic";
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function POST(req: Request) {

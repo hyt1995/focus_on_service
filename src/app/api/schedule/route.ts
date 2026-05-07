@@ -3,6 +3,8 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   // 🔥 1. 낡은 x-user-name 방식 대신 토큰 해독기로 인증!
   const user = await verifyUser(request);

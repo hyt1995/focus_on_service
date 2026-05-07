@@ -1,4 +1,5 @@
 // /src/app/api/daily/template/route.ts
+export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
@@ -9,8 +10,6 @@ import {
   deleteDailyTemplate,
   updateDailyTemplate,
 } from "../../../../lib/dataService";
-
-export const dynamic = "force-dynamic";
 
 // 1. 조회 (GET)
 export async function GET(request: Request) {

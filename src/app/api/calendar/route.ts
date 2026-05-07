@@ -1,4 +1,7 @@
 // src/app/api/calendar/route.ts
+
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import {
@@ -10,9 +13,6 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { verifyUser } from "@/utils/auth"; // 🔥 우리가 만든 토큰 해독기 추가!
-
-// 🔥 1. 캐싱 절대 금지 (새로고침 시 무조건 DB 찌름)
-export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   // 🔥 1. 낡은 x-user-name 방식 대신 토큰 해독기로 인증!
