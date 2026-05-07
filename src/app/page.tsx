@@ -35,7 +35,16 @@ export default function FocusApp() {
   useEffect(() => {
     // 🔥 수술 포인트: 웹뷰 앱에 로컬스토리지가 없어서 null일 경우를 대비해 '?' 추가
     const storedUser = window.localStorage?.getItem("focus_user_name");
-    if (storedUser) setUserName(storedUser);
+    const storedToken = window.localStorage?.getItem("focus_auth_token");
+
+    // 🌟 핵심 수술: 이름과 토큰 둘 다 완벽하게 있어야만 문을 열어줍니다!
+    if (storedUser && storedToken) {
+      setUserName(storedUser);
+    } else {
+      // 찌꺼기 데이터라면 싹 청소해 버리고 LoginGate로 보냅니다!
+      window.localStorage?.removeItem("focus_user_name");
+      window.localStorage?.removeItem("focus_auth_token");
+    }
     setIsInitialized(true);
   }, []);
 
@@ -113,7 +122,7 @@ function MainDashboard({
     };
 
     // 3. Vercel 주소 합쳐서 진짜 fetch 실행
-    const apiUrl = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
+    const apiUrl = `https://project-a7app.vercel.app${endpoint}`;
     return fetch(apiUrl, { ...options, headers });
   };
 
@@ -130,7 +139,7 @@ function MainDashboard({
     if (!isPremium) return;
 
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+      const apiUrl = "https://project-a7app.vercel.app/api/tasks";
 
       await fetch(apiUrl, {
         method: "PUT",
@@ -192,7 +201,7 @@ function MainDashboard({
   // 1. 세팅 가져오는 함수 생성
   const fetchSettings = async () => {
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
+      const apiUrl = "https://project-a7app.vercel.app/api/schedule";
       const res = await fetch(apiUrl, { headers: getHeaders(false) }); // 🔥 교체됨
       const data = await res.json();
       if (data.startTime && data.endTime) {
@@ -213,7 +222,7 @@ function MainDashboard({
 
   const checkPremiumStatus = async () => {
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
+      const apiUrl = "https://project-a7app.vercel.app/api/usage";
       const res = await fetch(apiUrl, {
         headers: getHeaders(false),
         cache: "no-store",
@@ -238,7 +247,7 @@ function MainDashboard({
 
   const fetchUsage = async () => {
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
+      const apiUrl = "https://project-a7app.vercel.app/api/usage";
       const res = await fetch(apiUrl, {
         headers: getHeaders(false),
         cache: "no-store",
@@ -273,7 +282,7 @@ function MainDashboard({
     }
 
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/daily/sync` : "/api/daily/sync";
+      const apiUrl = "https://project-a7app.vercel.app/api/daily/sync";
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: getHeaders(false),
@@ -288,7 +297,7 @@ function MainDashboard({
   };
 
   const fetchTasks = async () => {
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const apiUrl = "https://project-a7app.vercel.app/api/tasks";
     const res = await fetch(apiUrl, { headers: getHeaders(false) }); // 🔥 교체됨
 
     const data = await res.json();
@@ -298,7 +307,7 @@ function MainDashboard({
   };
 
   const fetchSchedules = async () => {
-    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    const apiUrl = "https://project-a7app.vercel.app/api/calendar";
     const res = await fetch(apiUrl, { headers: getHeaders(false) }); // 🔥 교체됨
     const data = await res.json();
 
@@ -386,7 +395,7 @@ function MainDashboard({
     if (!isPremium) {
       return;
     }
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const apiUrl = "https://project-a7app.vercel.app/api/tasks";
 
     await fetch(apiUrl, {
       method: "POST",
@@ -411,7 +420,7 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const apiUrl = "https://project-a7app.vercel.app/api/tasks";
 
     await fetch(apiUrl, {
       method: "PUT",
@@ -432,7 +441,7 @@ function MainDashboard({
     );
     setSchedules(updatedSchedules);
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    const apiUrl = "https://project-a7app.vercel.app/api/calendar";
 
     await fetch(apiUrl, {
       method: "PUT",
@@ -513,7 +522,7 @@ function MainDashboard({
       });
     });
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const apiUrl = "https://project-a7app.vercel.app/api/tasks";
     await fetch(apiUrl, {
       method: "PUT",
       headers: getHeaders(true),
@@ -552,7 +561,7 @@ function MainDashboard({
 
     setIsAiProcessing(true);
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/braindump` : "/api/braindump";
+      const apiUrl = "https://project-a7app.vercel.app/api/braindump";
 
       const res = await fetch(apiUrl, {
         method: "POST",
@@ -601,7 +610,7 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    await fetch(`/api/tasks?id=${id}`, {
+    await fetch(`https://project-a7app.vercel.app/api/tasks?id=${id}`, {
       method: "DELETE",
       headers: getHeaders(false),
     }); // 🔥 교체됨
@@ -620,7 +629,7 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const apiUrl = "https://project-a7app.vercel.app/api/tasks";
 
     await fetch(apiUrl, {
       method: "PUT",
@@ -649,9 +658,7 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    const apiUrl = baseUrl
-      ? `${baseUrl}/api/tasks/reorder`
-      : "/api/tasks/reorder";
+    const apiUrl = "https://project-a7app.vercel.app/api/tasks/reorder";
 
     await fetch(apiUrl, {
       method: "POST",
@@ -664,7 +671,7 @@ function MainDashboard({
     const updatedSchedules = [...schedules, newSchedule];
     setSchedules(updatedSchedules);
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    const apiUrl = "https://project-a7app.vercel.app/api/calendar";
 
     await fetch(apiUrl, {
       method: "PUT",
@@ -677,7 +684,7 @@ function MainDashboard({
     const updatedSchedules = schedules.filter(s => s.id !== id);
     setSchedules(updatedSchedules);
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    const apiUrl = "https://project-a7app.vercel.app/api/calendar";
 
     await fetch(apiUrl, {
       method: "PUT",
