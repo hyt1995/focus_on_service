@@ -54,11 +54,13 @@ export async function POST(req: Request) {
         rejectUnauthorized: false,
       });
 
-      await axios.post(
+      const res = await axios.post(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/payment/confirm",
         { paymentKey, orderId, amount },
         { httpsAgent }
       );
+
+      console.log("✅ 토스 승인 성공:", res.data);
 
       console.log(`✅ [실제 환경] 토스 결제 승인 완료: ${userName}`);
     }
@@ -84,6 +86,16 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("🚨 결제 검증 에러:", error?.response?.data || error.message);
+    if (error.response) {
+      // 토스 서버가 응답은 줬는데 에러인 경우 (예: 400 Bad Request)
+      console.error("Status:", error.response.status);
+      console.error("Data:", JSON.stringify(error.response.data));
+    } else if (error.request) {
+      // 토스 서버에 닿지도 못한 경우 (인증서 문제일 확률 99%)
+      console.error("요청은 보냈으나 응답 없음 (인증서/네트워크 확인 요망)");
+    } else {
+      console.error("설정 에러:", error.message);
+    }
     return NextResponse.json(
       { error: "결제 검증에 실패했습니다." },
       { status: 400 }
