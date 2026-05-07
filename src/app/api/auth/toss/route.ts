@@ -50,14 +50,21 @@ export async function POST(req: Request) {
       const tokenRes = await axios.post(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/user/oauth2/generate-token",
         { authorizationCode, referrer },
-        { httpsAgent }
+        {
+          httpsAgent,
+          // 🌟 시니어의 안전장치: JSON 명찰을 강제로 붙입니다!
+          headers: { "Content-Type": "application/json" },
+        }
       );
       const accessToken = tokenRes.data.accessToken;
 
       const userRes = await axios.post(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/user/oauth2/login-me",
         { accessToken },
-        { httpsAgent }
+        {
+          httpsAgent, // 🌟 동업자의 완벽한 지적! 두 번째 통신에도 명찰 부착!
+          headers: { "Content-Type": "application/json" },
+        }
       );
 
       const encryptedData = userRes.data.encryptedData || userRes.data;
