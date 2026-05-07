@@ -1,3 +1,5 @@
+// src/app/api/auth/toss/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase"; // 🌟 자네의 기존 설정 파일!
 import { doc, setDoc } from "firebase/firestore"; // 🌟 프론트엔드용 SDK 함수
@@ -74,6 +76,7 @@ export async function POST(req: Request) {
     }
 
     /* ======= 🚨 DB 저장 스위치 (출시 전: 켬 / 출시 후: 끔) ======= */
+    // 지금은 모든 유저를 저장한다. 나중에 firebase 비용이 걱정될때 삭제할 것
 
     // 🌟 어드민 대신 클라이언트 SDK(setDoc) 방식으로 변경 완료!
     const userRef = doc(db, "Users", tossUserCI);

@@ -1,9 +1,10 @@
+// src/app/api/payments/confirm/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase"; // 🌟 자네의 기존 설정 파일!
 import { doc, setDoc } from "firebase/firestore"; // 🌟 프론트엔드용 SDK 함수
 import axios from "axios";
 import https from "https";
-import fs from "fs";
 import { jwtVerify } from "jose";
 
 export const dynamic = "force-dynamic";
@@ -48,12 +49,8 @@ export async function POST(req: Request) {
       );
 
       const httpsAgent = new https.Agent({
-        cert: certString.includes("BEGIN CERTIFICATE")
-          ? certString
-          : fs.readFileSync(certString),
-        key: keyString.includes("BEGIN PRIVATE KEY")
-          ? keyString
-          : fs.readFileSync(keyString),
+        cert: certString,
+        key: keyString,
         rejectUnauthorized: false,
       });
 
