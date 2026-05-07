@@ -16,6 +16,10 @@ export async function POST(req: Request) {
   try {
     const { authorizationCode, referrer } = await req.json();
 
+    // 🌟 시니어의 블랙박스 기록장치!
+    console.log("🚀 [토스 발사 준비] AuthCode:", authorizationCode);
+    console.log("🚀 [토스 발사 준비] Referrer:", referrer);
+
     let tossUserCI = "";
     let tossUserName = "";
     let tossUserPhone = "";
