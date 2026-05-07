@@ -83,6 +83,20 @@ function MainDashboard({
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+  // 🔥 [여기 추가!] 18곳의 fetch에 쓰일 토큰 통행증 자동 생성기
+  const getHeaders = (needsJson = true) => {
+    const token =
+      typeof window !== "undefined"
+        ? window.localStorage?.getItem("focus_auth_token")
+        : "";
+    const headers: any = {
+      "x-user-name": encodeURIComponent(userName),
+      Authorization: `Bearer ${token}`,
+    };
+    if (needsJson) headers["Content-Type"] = "application/json";
+    return headers;
+  };
+
   // 🚀 [시니어의 비기] Vercel과 통신하는 공통 래퍼 함수 (토큰 자동 장착기)
   const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     // 1. 스마트폰에 저장된 토큰 꺼내기
@@ -116,10 +130,13 @@ function MainDashboard({
     if (!isPremium) return;
 
     try {
-      await apiFetch("/api/tasks", {
+      const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+
+      await fetch(apiUrl, {
         method: "PUT",
+        headers: getHeaders(true),
         body: JSON.stringify({ id, updatedFields: { status: newStatus } }),
-      }); // x-user-name 지우고 apiFetch로만 변경!
+      }); // 🔥 교체됨
     } catch (error) {
       console.error("상태 변경 에러:", error);
       alert("서버 오류로 상태가 저장되지 않았어요.");
@@ -175,7 +192,8 @@ function MainDashboard({
   // 1. 세팅 가져오는 함수 생성
   const fetchSettings = async () => {
     try {
-      const res = await apiFetch("/api/schedule");
+      const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
+      const res = await fetch(apiUrl, { headers: getHeaders(false) }); // 🔥 교체됨
       const data = await res.json();
       if (data.startTime && data.endTime) {
         setTodayStartTime(data.startTime);
@@ -195,7 +213,11 @@ function MainDashboard({
 
   const checkPremiumStatus = async () => {
     try {
-      const res = await apiFetch("/api/usage", { cache: "no-store" });
+      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
+      const res = await fetch(apiUrl, {
+        headers: getHeaders(false),
+        cache: "no-store",
+      }); // 🔥 교체됨
       const data = await res.json();
       setIsPremium(data.isPremium);
       setAiUsageCount(Number(data.count) || 0);
@@ -216,7 +238,11 @@ function MainDashboard({
 
   const fetchUsage = async () => {
     try {
-      const res = await apiFetch("/api/usage", { cache: "no-store" });
+      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
+      const res = await fetch(apiUrl, {
+        headers: getHeaders(false),
+        cache: "no-store",
+      }); // 🔥 교체됨
       const data = await res.json();
       setAiUsageCount(Number(data.count) || 0);
       setIsPremium(data.isPremium);
@@ -247,10 +273,12 @@ function MainDashboard({
     }
 
     try {
-      const res = await apiFetch("/api/daily/sync", {
+      const apiUrl = baseUrl ? `${baseUrl}/api/daily/sync` : "/api/daily/sync";
+      const res = await fetch(apiUrl, {
         method: "POST",
+        headers: getHeaders(false),
         cache: "no-store",
-      });
+      }); // 🔥 교체됨
       if (res.ok && typeof window !== "undefined") {
         window.localStorage?.setItem(STORAGE_KEY, today);
       }
@@ -260,7 +288,8 @@ function MainDashboard({
   };
 
   const fetchTasks = async () => {
-    const res = await apiFetch("/api/tasks");
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    const res = await fetch(apiUrl, { headers: getHeaders(false) }); // 🔥 교체됨
 
     const data = await res.json();
     setTasks(data);
@@ -269,7 +298,8 @@ function MainDashboard({
   };
 
   const fetchSchedules = async () => {
-    const res = await apiFetch("/api/calendar");
+    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+    const res = await fetch(apiUrl, { headers: getHeaders(false) }); // 🔥 교체됨
     const data = await res.json();
 
     if (Array.isArray(data)) setSchedules(data);
@@ -356,11 +386,13 @@ function MainDashboard({
     if (!isPremium) {
       return;
     }
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
 
-    await apiFetch("/api/tasks", {
+    await fetch(apiUrl, {
       method: "POST",
+      headers: getHeaders(true),
       body: JSON.stringify(newTask),
-    });
+    }); // 🔥 교체됨
   };
 
   const updateCardDetails = async (
@@ -379,13 +411,16 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    await apiFetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+
+    await fetch(apiUrl, {
       method: "PUT",
+      headers: getHeaders(true),
       body: JSON.stringify({
         id,
         updatedFields: { title: newTitle, description: newDesc },
       }),
-    });
+    }); // 🔥 교체됨
   };
 
   const handleUpdateSchedule = async (
@@ -397,10 +432,13 @@ function MainDashboard({
     );
     setSchedules(updatedSchedules);
 
-    await apiFetch("/api/calendar", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+
+    await fetch(apiUrl, {
       method: "PUT",
+      headers: getHeaders(true),
       body: JSON.stringify({ schedules: updatedSchedules }),
-    });
+    }); // 🔥 교체됨
   };
 
   // 🔥 1. 강력한 리셋 함수 (API가 실패해도 강제로 0으로 만듦)
@@ -408,15 +446,8 @@ function MainDashboard({
   //   if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠어요?")) return;
 
   //   try {
-  //     const apiUrl = baseUrl
-  //       ? `${baseUrl}/api/usage/reset`
-  //       : "/api/usage/reset";
-
-  //     const res = await fetch(apiUrl, {
-  //       method: "POST",
-  //       headers: { "x-user-name": encodeURIComponent(userName) },
-  //       cache: "no-store",
-  //     });
+  // const apiUrl = baseUrl ? `${baseUrl}/api/usage/reset` : "/api/usage/reset";
+  // const res = await fetch(apiUrl, { method: "POST", headers: getHeaders(false), cache: "no-store" }); // 🔥 교체됨
 
   //     if (res.ok) {
   //       setAiUsageCount(0);
@@ -482,9 +513,10 @@ function MainDashboard({
       });
     });
 
-    // DB 업데이트 로직은 기존과 동일
-    await apiFetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+    await fetch(apiUrl, {
       method: "PUT",
+      headers: getHeaders(true),
       body: JSON.stringify({
         id: task.id,
         updatedFields: {
@@ -495,7 +527,7 @@ function MainDashboard({
           status: isActive ? "in-progress" : task.status,
         },
       }),
-    });
+    }); // 🔥 교체됨
   };
 
   // 🎙️ 3. 안전하게 종료하고 서버로 텍스트 보내기
@@ -520,11 +552,14 @@ function MainDashboard({
 
     setIsAiProcessing(true);
     try {
-      const res = await apiFetch("/api/braindump", {
+      const apiUrl = baseUrl ? `${baseUrl}/api/braindump` : "/api/braindump";
+
+      const res = await fetch(apiUrl, {
         method: "POST",
+        headers: getHeaders(true),
         cache: "no-store",
         body: JSON.stringify({ text: finalText }),
-      });
+      }); // 🔥 교체됨
 
       if (res.status === 403) {
         alert("오늘 이용 가능 횟수(2회)를 모두 소진했어요.");
@@ -566,7 +601,10 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    await apiFetch(`/api/tasks?id=${id}`, { method: "DELETE" });
+    await fetch(`/api/tasks?id=${id}`, {
+      method: "DELETE",
+      headers: getHeaders(false),
+    }); // 🔥 교체됨
   };
 
   const updateDeadline = async (id: number | string, newDeadline: string) => {
@@ -582,13 +620,16 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    await apiFetch("/api/tasks", {
+    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
+
+    await fetch(apiUrl, {
       method: "PUT",
+      headers: getHeaders(true),
       body: JSON.stringify({
         id,
         updatedFields: { deadline: formattedDeadline },
       }),
-    });
+    }); // 🔥 교체됨
   };
 
   const handleSort = async () => {
@@ -608,29 +649,41 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    await apiFetch("/api/tasks/reorder", {
+    const apiUrl = baseUrl
+      ? `${baseUrl}/api/tasks/reorder`
+      : "/api/tasks/reorder";
+
+    await fetch(apiUrl, {
       method: "POST",
+      headers: getHeaders(true),
       body: JSON.stringify({ reorderedTasks: _tasks }),
-    });
+    }); // 🔥 교체됨
   };
 
   const handleSaveSchedule = async (newSchedule: Schedule) => {
     const updatedSchedules = [...schedules, newSchedule];
     setSchedules(updatedSchedules);
-    await apiFetch("/api/calendar", {
+
+    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
+
+    await fetch(apiUrl, {
       method: "PUT",
+      headers: getHeaders(true),
       body: JSON.stringify({ schedules: updatedSchedules }),
-    });
+    }); // 🔥 교체됨
   };
 
   const handleDeleteSchedule = async (id: string) => {
     const updatedSchedules = schedules.filter(s => s.id !== id);
     setSchedules(updatedSchedules);
+
     const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
-    await apiFetch("/api/calendar", {
+
+    await fetch(apiUrl, {
       method: "PUT",
+      headers: getHeaders(true),
       body: JSON.stringify({ schedules: updatedSchedules }),
-    });
+    }); // 🔥 교체됨
   };
 
   // 마이크 버튼을 눌렀을때 실행되는 함// 🎙️ 1. 버튼 눌렀을 때 (마이크 즉시 선점 + 4초 카운트다운)
