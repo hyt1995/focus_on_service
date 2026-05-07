@@ -14,27 +14,22 @@ export default function LoginGate({
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   useEffect(() => {
-    // 이미 로그인 시도를 했다면 중복 실행 방지
-    if (hasAttemptedLogin.current) return;
-    hasAttemptedLogin.current = true;
+    // 🌟 방어막 제거: Strict Mode가 취소하고 다시 켜는 것을 자연스럽게 허용합니다.
 
     const autoLogin = async () => {
       try {
         let authCode = "";
         let reqReferrer = "";
 
-        // 🌟 환경 검사: 토스 앱 내부인가? PC(로컬) 브라우저인가?
         const isTossApp =
           typeof window !== "undefined" && navigator.userAgent.includes("Toss");
 
         if (isTossApp) {
-          // [실제 토스 환경] 백그라운드에서 조용히 인가 코드를 가져옴
           setStatusMsg("토스 유저 정보를 확인하고 있어요...");
           const { authorizationCode, referrer } = await appLogin();
           authCode = authorizationCode;
           reqReferrer = referrer || "toss_app";
         } else {
-          // [로컬 PC 환경] 🛠️ 개발자 우회로 자동 발동!
           console.log("🛠️ [로컬 테스트] 자동 가짜 로그인 진행 중...");
           authCode = "LOCAL_TEST_CODE";
           reqReferrer = "local_test";
@@ -42,7 +37,6 @@ export default function LoginGate({
 
         setStatusMsg("타임다이브에 접속 중입니다...");
 
-        // 백엔드로 인가 코드 전송
         const apiUrl = baseUrl ? `${baseUrl}/api/auth/toss` : "/api/auth/toss";
         const res = await fetch(apiUrl, {
           method: "POST",
@@ -58,10 +52,9 @@ export default function LoginGate({
 
         if (typeof window !== "undefined") {
           window.localStorage?.setItem("focus_user_name", data.userName);
-          window.localStorage?.setItem("focus_auth_token", data.token); // 토큰 저장
+          window.localStorage?.setItem("focus_auth_token", data.token);
         }
 
-        // 로그인 완료 후 부모 컴포넌트로 이름 전달하여 메인 화면 진입
         onLogin(data.userName);
       } catch (error) {
         console.error("자동 로그인 에러:", error);
@@ -69,11 +62,12 @@ export default function LoginGate({
       }
     };
 
-    // 자연스러운 UX를 위해 1초 정도 스플래시 화면을 보여주고 자동 로그인 실행
+    // 1초 스플래시 후 실행
     const timer = setTimeout(() => {
       autoLogin();
     }, 1000);
 
+    // 컴포넌트가 언마운트(또는 Strict Mode 재실행)될 때 이전 타이머를 청소!
     return () => clearTimeout(timer);
   }, [baseUrl, onLogin]);
 
