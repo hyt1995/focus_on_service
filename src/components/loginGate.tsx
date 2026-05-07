@@ -19,6 +19,13 @@ export default function LoginGate({
     // 🌟 방어막 제거: Strict Mode가 취소하고 다시 켜는 것을 자연스럽게 허용합니다.
 
     const autoLogin = async () => {
+      // 🌟 자물쇠 검사: 이미 한 번 시도했다면 바로 튕겨냄!
+      if (hasAttemptedLogin.current) {
+        console.log("🛡️ 이미 로그인 시도를 했습니다. 중복 요청을 차단합니다.");
+        return;
+      }
+      hasAttemptedLogin.current = true; // 찰칵! 자물쇠 잠금!
+
       try {
         let authCode = "";
         let reqReferrer = "";
