@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   try {
     // 🌟 단일화 및 비용 절감: users 컬렉션 한 번만 읽기!
-    const userRef = doc(db, "users", user.uid);
+    const userRef = doc(db, "Users", user.uid);
     const userSnap = await getDoc(userRef);
 
     let isPremium = false;

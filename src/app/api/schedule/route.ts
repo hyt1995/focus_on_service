@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     );
 
   try {
-    const docRef = doc(db, "users", user.uid);
+    const docRef = doc(db, "Users", user.uid);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists() && docSnap.data().settings) {
@@ -40,7 +40,7 @@ export async function PUT(request: Request) {
   const data = await request.json();
 
   try {
-    const docRef = doc(db, "users", user.uid);
+    const docRef = doc(db, "Users", user.uid);
     // 🔥 settings 객체 안에 묶어서 저장!
     await setDoc(
       docRef,

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
   try {
     // 🌟 DB 단일화 원칙: users 컬렉션 내부의 aiUsage 객체를 0으로 초기화!
-    const docRef = doc(db, "users", user.uid);
+    const docRef = doc(db, "Users", user.uid);
     await setDoc(
       docRef,
       { aiUsage: { count: 0, date: today } },

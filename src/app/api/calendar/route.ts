@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   try {
     // 🌟 2. 새로운 방(calendar_events)에서 날짜순으로 가져옴
-    const colRef = collection(db, "users", user.uid, "calendar_events");
+    const colRef = collection(db, "Users", user.uid, "calendar_events");
     const q = query(colRef, orderBy("date", "asc"));
     const querySnapshot = await getDocs(q);
 
@@ -51,7 +51,7 @@ export async function PUT(request: Request) {
   const { schedules } = await request.json();
 
   try {
-    const colRef = collection(db, "users", user.uid, "calendar_events");
+    const colRef = collection(db, "Users", user.uid, "calendar_events");
 
     // 🌟 3. 서브 컬렉션 Batch 업서트 (통신 비용 최소화)
     const snapshot = await getDocs(colRef);

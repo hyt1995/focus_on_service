@@ -181,7 +181,7 @@ export async function POST(request: Request) {
 
     // 🌟 1. DB 단일화 (Single Source of Truth) & 비용 절감 (Read 1회)
     // users 컬렉션 하나만 읽어서 프리미엄 여부와 사용량을 동시에 확인해!
-    const userRef = doc(db, "users", user.uid);
+    const userRef = doc(db, "Users", user.uid);
     const userSnap = await getDoc(userRef);
 
     let isPremium = false;
