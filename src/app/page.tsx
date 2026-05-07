@@ -25,6 +25,8 @@ import BrainDumpModal from "@/components/BrainDumpModal"; // 상단에 추가
 import TimeReceiptView from "@/components/TimeReceiptView";
 import Paywall from "@/components/Paywall";
 // 🔥 [TDS 추가] 토스 디자인 컴포넌트들을 불러와요
+import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
+import { ConfirmDialog, Button, FixedBottomCTA } from "@toss/tds-mobile";
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -81,6 +83,26 @@ function MainDashboard({
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+  // 🚀 [시니어의 비기] Vercel과 통신하는 공통 래퍼 함수 (토큰 자동 장착기)
+  const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+    // 1. 스마트폰에 저장된 토큰 꺼내기
+    const token =
+      typeof window !== "undefined"
+        ? window.localStorage?.getItem("focus_auth_token")
+        : null;
+
+    // 2. 헤더에 토큰 세팅 (종이 출입증이었던 x-user-name은 이제 영원히 안녕!)
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    };
+
+    // 3. Vercel 주소 합쳐서 진짜 fetch 실행
+    const apiUrl = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
+    return fetch(apiUrl, { ...options, headers });
+  };
+
   // 2. 상태 변경 및 탭 강제 견인 함수
   const updateTaskStatus = async (id: number | string, newStatus: string) => {
     setTasks(
@@ -94,18 +116,10 @@ function MainDashboard({
     if (!isPremium) return;
 
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
-      await fetch(apiUrl, {
+      await apiFetch("/api/tasks", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-name": encodeURIComponent(userName),
-        },
-        body: JSON.stringify({
-          id,
-          updatedFields: { status: newStatus },
-        }),
-      });
+        body: JSON.stringify({ id, updatedFields: { status: newStatus } }),
+      }); // x-user-name 지우고 apiFetch로만 변경!
     } catch (error) {
       console.error("상태 변경 에러:", error);
       alert("서버 오류로 상태가 저장되지 않았어요.");
@@ -121,6 +135,7 @@ function MainDashboard({
   );
   const [aiUsageCount, setAiUsageCount] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
+  const [tick, setTick] = useState(0);
 
   // 특별 카드 상세내역 관리를 위한 State
   const [expandedSpecialIds, setExpandedSpecialIds] = useState<string[]>([]);
@@ -160,10 +175,7 @@ function MainDashboard({
   // 1. 세팅 가져오는 함수 생성
   const fetchSettings = async () => {
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/schedule` : "/api/schedule";
-      const res = await fetch(apiUrl, {
-        headers: { "x-user-name": encodeURIComponent(userName) },
-      });
+      const res = await apiFetch("/api/schedule");
       const data = await res.json();
       if (data.startTime && data.endTime) {
         setTodayStartTime(data.startTime);
@@ -182,15 +194,9 @@ function MainDashboard({
   }, [userName]);
 
   const checkPremiumStatus = async () => {
-    if (!userName) return;
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
-      const res = await fetch(apiUrl, {
-        headers: { "x-user-name": encodeURIComponent(userName) },
-        cache: "no-store",
-      });
+      const res = await apiFetch("/api/usage", { cache: "no-store" });
       const data = await res.json();
-
       setIsPremium(data.isPremium);
       setAiUsageCount(Number(data.count) || 0);
 
@@ -210,11 +216,7 @@ function MainDashboard({
 
   const fetchUsage = async () => {
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/usage` : "/api/usage";
-      const res = await fetch(apiUrl, {
-        headers: { "x-user-name": encodeURIComponent(userName) },
-        cache: "no-store",
-      });
+      const res = await apiFetch("/api/usage", { cache: "no-store" });
       const data = await res.json();
       setAiUsageCount(Number(data.count) || 0);
       setIsPremium(data.isPremium);
@@ -227,8 +229,7 @@ function MainDashboard({
   // --- [page.tsx 내부의 syncDailyTasks 함수를 핀셋 교체] ---
   const syncDailyTasks = async () => {
     let lastSyncDate = null;
-    const STORAGE_KEY = `last_daily_sync_${userName}`;
-
+    const STORAGE_KEY = `last_daily_sync_status`; // UID 기반이므로 이름 제거
     // 'window'가 존재할 때만 실행
     if (typeof window !== "undefined") {
       // 🔥 수술 포인트: '?' 추가
@@ -246,19 +247,12 @@ function MainDashboard({
     }
 
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/daily/sync` : "/api/daily/sync";
-      const res = await fetch(apiUrl, {
+      const res = await apiFetch("/api/daily/sync", {
         method: "POST",
-        headers: { "x-user-name": encodeURIComponent(userName) },
         cache: "no-store",
       });
-
-      if (res.ok) {
-        // 2차 검문 통과: 서버에서 처리가 완료되면 로컬스토리지에 저장 (여기에도 방어 코드 추가)
-        if (typeof window !== "undefined") {
-          window.localStorage?.setItem(STORAGE_KEY, today);
-        }
-        console.log("✅ [Sync] 오늘치 데일리 루틴 동기화 완료.");
+      if (res.ok && typeof window !== "undefined") {
+        window.localStorage?.setItem(STORAGE_KEY, today);
       }
     } catch (err) {
       console.error("데일리 동기화 실패:", err);
@@ -266,10 +260,8 @@ function MainDashboard({
   };
 
   const fetchTasks = async () => {
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
-    const res = await fetch(apiUrl, {
-      headers: { "x-user-name": encodeURIComponent(userName) },
-    });
+    const res = await apiFetch("/api/tasks");
+
     const data = await res.json();
     setTasks(data);
     const runningTask = data.find((t: Task) => t.isActive === true);
@@ -277,15 +269,12 @@ function MainDashboard({
   };
 
   const fetchSchedules = async () => {
-    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
-    const res = await fetch(apiUrl, {
-      headers: { "x-user-name": encodeURIComponent(userName) },
-    });
+    const res = await apiFetch("/api/calendar");
     const data = await res.json();
+
     if (Array.isArray(data)) setSchedules(data);
   };
 
-  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!activeTaskId) return;
     const timer = setInterval(() => setTick(t => t + 1), 60000);
@@ -368,13 +357,8 @@ function MainDashboard({
       return;
     }
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
-    await fetch(apiUrl, {
+    await apiFetch("/api/tasks", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify(newTask),
     });
   };
@@ -395,13 +379,8 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
-    await fetch(apiUrl, {
+    await apiFetch("/api/tasks", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({
         id,
         updatedFields: { title: newTitle, description: newDesc },
@@ -417,52 +396,48 @@ function MainDashboard({
       s.id === id ? updatedSchedule : s
     );
     setSchedules(updatedSchedules);
-    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
-    await fetch(apiUrl, {
+
+    await apiFetch("/api/calendar", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({ schedules: updatedSchedules }),
     });
   };
 
   // 🔥 1. 강력한 리셋 함수 (API가 실패해도 강제로 0으로 만듦)
-  const handleResetUsage = async () => {
-    if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠어요?")) return;
+  // const handleResetUsage = async () => {
+  //   if (!confirm("개발자 모드: AI 사용 횟수를 0으로 리셋하시겠어요?")) return;
 
-    try {
-      const apiUrl = baseUrl
-        ? `${baseUrl}/api/usage/reset`
-        : "/api/usage/reset";
+  //   try {
+  //     const apiUrl = baseUrl
+  //       ? `${baseUrl}/api/usage/reset`
+  //       : "/api/usage/reset";
 
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "x-user-name": encodeURIComponent(userName) },
-        cache: "no-store",
-      });
+  //     const res = await fetch(apiUrl, {
+  //       method: "POST",
+  //       headers: { "x-user-name": encodeURIComponent(userName) },
+  //       cache: "no-store",
+  //     });
 
-      if (res.ok) {
-        setAiUsageCount(0);
-        alert("리셋 완료! 다시 마이크를 사용할 수 있습니다.");
-      } else {
-        // 🔥 서버에 리셋 API가 아직 없거나 에러가 나더라도 테스트를 위해 화면 횟수는 강제 초기화!
-        console.warn(
-          `서버 리셋 실패 (상태 코드: ${res.status}). 프론트엔드 횟수를 강제로 0으로 변경합니다.`
-        );
-        setAiUsageCount(0);
-        alert(
-          "임시 리셋 완료! (서버 연결 실패로 화면만 0으로 강제 리셋했습니다)"
-        );
-      }
-    } catch (error) {
-      console.error("리셋 통신 에러:", error);
-      // 🔥 인터넷이 끊기거나 주소가 완전히 틀려도 테스트는 해야 하니까 강제 초기화!
-      setAiUsageCount(0);
-      alert("임시 리셋 완료! (API 연결 에러로 화면만 0으로 강제 리셋했습니다)");
-    }
-  };
+  //     if (res.ok) {
+  //       setAiUsageCount(0);
+  //       alert("리셋 완료! 다시 마이크를 사용할 수 있습니다.");
+  //     } else {
+  //       // 🔥 서버에 리셋 API가 아직 없거나 에러가 나더라도 테스트를 위해 화면 횟수는 강제 초기화!
+  //       console.warn(
+  //         `서버 리셋 실패 (상태 코드: ${res.status}). 프론트엔드 횟수를 강제로 0으로 변경합니다.`
+  //       );
+  //       setAiUsageCount(0);
+  //       alert(
+  //         "임시 리셋 완료! (서버 연결 실패로 화면만 0으로 강제 리셋했습니다)"
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("리셋 통신 에러:", error);
+  //     // 🔥 인터넷이 끊기거나 주소가 완전히 틀려도 테스트는 해야 하니까 강제 초기화!
+  //     setAiUsageCount(0);
+  //     alert("임시 리셋 완료! (API 연결 에러로 화면만 0으로 강제 리셋했습니다)");
+  //   }
+  // };
 
   const toggleFocus = async (task: Task) => {
     const currentTime = Date.now();
@@ -508,13 +483,8 @@ function MainDashboard({
     });
 
     // DB 업데이트 로직은 기존과 동일
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
-    await fetch(apiUrl, {
+    await apiFetch("/api/tasks", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({
         id: task.id,
         updatedFields: {
@@ -522,7 +492,7 @@ function MainDashboard({
           progress: finalProgress,
           startedAt: initialStart,
           lastStartedAt: isActive ? currentTime : null,
-          status: isActive ? "in-progress" : task.status, // DB에도 상태 변경 반영
+          status: isActive ? "in-progress" : task.status,
         },
       }),
     });
@@ -550,13 +520,8 @@ function MainDashboard({
 
     setIsAiProcessing(true);
     try {
-      const apiUrl = baseUrl ? `${baseUrl}/api/braindump` : "/api/braindump";
-      const res = await fetch(apiUrl, {
+      const res = await apiFetch("/api/braindump", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-name": encodeURIComponent(userName),
-        },
         cache: "no-store",
         body: JSON.stringify({ text: finalText }),
       });
@@ -601,10 +566,7 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    await fetch(`/api/tasks?id=${id}`, {
-      method: "DELETE",
-      headers: { "x-user-name": encodeURIComponent(userName) },
-    });
+    await apiFetch(`/api/tasks?id=${id}`, { method: "DELETE" });
   };
 
   const updateDeadline = async (id: number | string, newDeadline: string) => {
@@ -620,13 +582,8 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    const apiUrl = baseUrl ? `${baseUrl}/api/tasks` : "/api/tasks";
-    await fetch(apiUrl, {
+    await apiFetch("/api/tasks", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({
         id,
         updatedFields: { deadline: formattedDeadline },
@@ -651,15 +608,8 @@ function MainDashboard({
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
 
-    const apiUrl = baseUrl
-      ? `${baseUrl}/api/tasks/reorder`
-      : "/api/tasks/reorder";
-    await fetch(apiUrl, {
+    await apiFetch("/api/tasks/reorder", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({ reorderedTasks: _tasks }),
     });
   };
@@ -667,13 +617,8 @@ function MainDashboard({
   const handleSaveSchedule = async (newSchedule: Schedule) => {
     const updatedSchedules = [...schedules, newSchedule];
     setSchedules(updatedSchedules);
-    const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
-    await fetch(apiUrl, {
+    await apiFetch("/api/calendar", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({ schedules: updatedSchedules }),
     });
   };
@@ -682,12 +627,8 @@ function MainDashboard({
     const updatedSchedules = schedules.filter(s => s.id !== id);
     setSchedules(updatedSchedules);
     const apiUrl = baseUrl ? `${baseUrl}/api/calendar` : "/api/calendar";
-    await fetch(apiUrl, {
+    await apiFetch("/api/calendar", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-name": encodeURIComponent(userName),
-      },
       body: JSON.stringify({ schedules: updatedSchedules }),
     });
   };
@@ -720,24 +661,13 @@ function MainDashboard({
     setBrainDumpTimeLeft(null);
 
     try {
-      // 1️⃣ [가장 먼저] 네이티브 앱(폰)의 OS 권한부터 정중하게 허락받기
-      // if (
-      //   typeof window !== "undefined" &&
-      //   (window as any).Capacitor?.isNativePlatform()
-      // ) {
-      //   await SpeechRecognition.requestPermissions();
-      // }
-
       // 2️⃣ [그 다음] OS가 허락했으니 안심하고 실제 마이크 하드웨어 켜기
       // (Vercel이 아닌 로컬 앱 환경이라 이제 딜레이 튕김 없음!)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
       // 3️⃣ 백엔드(Vercel) 통신해서 딥그램 토큰 받아오기
-      const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-      const res = await fetch(`${BASE_URL}/api/deepgram`, {
-        cache: "no-store",
-      });
+      const res = await apiFetch("/api/deepgram", { cache: "no-store" });
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error("토큰 발급 실패");
       deepgramTokenRef.current = data.token;
@@ -763,57 +693,6 @@ function MainDashboard({
       );
     }
   };
-
-  // 🎙️ 2. 진짜 녹음 시작 (4초 끝나고 자동으로 불리는 함수)
-  // const startDeepgramRecording = async () => {
-  //   setBrainDumpTimeLeft(20); // 20초 카운트다운 시작!
-
-  //   try {
-  //     if (!streamRef.current || !socketRef.current)
-  //       throw new Error("마이크/소켓 미준비");
-  //     const socket = socketRef.current;
-
-  //     // 🔥 [핵심 3] 4초 뒤, 대기시켜놨던 마이크 소리를 딥그램으로 쏘기 시작
-  //     const startRecording = () => {
-  //       const mediaRecorder = new MediaRecorder(streamRef.current!);
-  //       mediaRecorderRef.current = mediaRecorder;
-  //       mediaRecorder.addEventListener("dataavailable", event => {
-  //         if (event.data.size > 0 && socket.readyState === 1) {
-  //           socket.send(event.data);
-  //         }
-  //       });
-  //       mediaRecorder.start(250);
-  //     };
-
-  //     // 이미 소켓이 열렸다면 즉시 쏘고, 아니라면 열리는 순간 쏜다
-  //     if (socket.readyState === 1) {
-  //       startRecording();
-  //     } else {
-  //       socket.onopen = startRecording;
-  //     }
-
-  //     // 글자 받아오기
-  //     socket.onmessage = message => {
-  //       const received = JSON.parse(message.data);
-  //       if (received.channel?.alternatives[0]) {
-  //         const transcript = received.channel.alternatives[0].transcript;
-  //         if (transcript) {
-  //           if (received.is_final)
-  //             finalTranscriptRef.current += transcript + " ";
-  //           const currentText =
-  //             finalTranscriptRef.current +
-  //             (received.is_final ? "" : transcript);
-  //           setRecognizedText(currentText);
-  //           recognizedTextRef.current = currentText;
-  //         }
-  //       }
-  //     };
-  //   } catch (err: any) {
-  //     console.error("녹음 시작 에러:", err);
-  //     alert("녹음을 시작하는 데 문제가 생겼어요. 다시 시도해 주세요.");
-  //     stopAndSendBrainDump();
-  //   }
-  // };
 
   const startDeepgramRecording = async () => {
     setBrainDumpTimeLeft(20);
@@ -969,14 +848,14 @@ function MainDashboard({
             </div>
           ) : (
             <>
-              {/* 3단 탭 UI */}
-              <div className="flex justify-center gap-2 my-6">
+              {/* 3단 탭 UI (위아래 여백 대폭 축소: my-6 -> my-2) */}
+              <div className="flex justify-center gap-2 my-2">
                 {[
                   { id: "todo", label: "진행 전" },
                   { id: "in-progress", label: "진행 중" },
                   { id: "done", label: "완료" },
                 ].map(tab => (
-                  <button // 🔥 대문자 Button을 소문자 button으로 변경
+                  <Button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300 ${
@@ -986,7 +865,7 @@ function MainDashboard({
                     }`}
                   >
                     {tab.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -1064,181 +943,143 @@ function MainDashboard({
 
   // --- 렌더링 영역 ---
   return (
-    <div className="flex h-screen bg-[#F9F9FB] text-[#1C1C1E] overflow-hidden">
-      <Sidebar
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        isMobileOpen={isSidebarOpen}
-        setIsMobileOpen={setIsSidebarOpen}
-        closingTime={todayEndTime}
-      />
-
-      <main className="flex-1 flex flex-col relative overflow-hidden">
-        <header className="flex items-center gap-5 justify-between p-4 lg:p-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100">
-          <button
-            className="lg:hidden shrink-0 p-2 -ml-2 text-gray-700 hover:bg-gray-200 rounded-xl"
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <Menu className="w-7 h-7" />
-          </button>
-          <div className="flex-1 min-w-0 lg:max-w-2xl lg:mx-auto gap-3">
-            <TodayTimeboxDashboard
-              userName={userName}
-              todaySchedules={todaySchedules}
-              onTimeLoad={(start, end) => {
-                setTodayStartTime(start);
-                setTodayEndTime(end);
-              }}
-              isPremium={isPremium}
-            />
-          </div>
-        </header>
-
-        <section className="flex-1 overflow-y-auto p-4 lg:p-10 space-y-4 pb-40">
-          {renderCurrentView()}
-        </section>
-
-        {/* 모듈화된 브레인덤프 모달 */}
-        <BrainDumpModal
-          isOpen={isBrainDumping}
-          prepCount={prepCount}
-          timeLeft={brainDumpTimeLeft}
-          recognizedText={recognizedText}
+    <TDSMobileAITProvider>
+      <div className="flex h-screen bg-[#F9F9FB] text-[#1C1C1E] overflow-hidden">
+        <Sidebar
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          isMobileOpen={isSidebarOpen}
+          setIsMobileOpen={setIsSidebarOpen}
+          closingTime={todayEndTime}
         />
 
-        {isAiProcessing && (
-          <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-black/90 text-white px-8 py-4 rounded-full text-sm font-bold animate-bounce z-50 shadow-xl">
-            🧠 AI가 일정을 재배열 하는 중이에요...
-          </div>
-        )}
+        <main className="flex-1 flex flex-col relative overflow-hidden">
+          <header className="flex items-center gap-5 justify-between p-4 lg:p-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100">
+            <button
+              className="lg:hidden shrink-0 p-2 -ml-2 text-gray-700 hover:bg-gray-200 rounded-xl"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="w-7 h-7" />
+            </button>
+            <div className="flex-1 min-w-0 lg:max-w-2xl lg:mx-auto gap-3">
+              <TodayTimeboxDashboard
+                userName={userName}
+                todaySchedules={todaySchedules}
+                onTimeLoad={(start, end) => {
+                  setTodayStartTime(start);
+                  setTodayEndTime(end);
+                }}
+                isPremium={isPremium}
+              />
+            </div>
+          </header>
 
-        {/* <div className="fixed bottom-8 right-6 lg:right-10 flex flex-col items-center bg-white/80 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white/40 z-20 gap-3"> */}
-        {/* <button
-            onClick={handleResetUsage}
-            className="p-1.5 text-[10px] font-bold text-gray-400 bg-gray-100 rounded-full hover:bg-gray-200 hover:text-red-500 transition-colors"
-            title="사용량 리셋 (개발자용)"
-          >
-            ↻ 리셋
-          </button> */}
+          <section className="flex-1 overflow-y-auto p-4 lg:p-10 space-y-4 pb-40">
+            {renderCurrentView()}
+          </section>
 
-        {/* <button
-          onClick={toggleBrainDump}
-          disabled={
-            !isPremium || isAiProcessing || (!isPremium && aiUsageCount >= 2)
-          }
-          className={`p-4 rounded-full transition-all flex justify-center items-center
-              ${
-                isBrainDumping
-                  ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/50"
-                  : "bg-[#FF9500] hover:scale-105 shadow-lg shadow-[#FF9500]/40"
-              }
-              ${
-                isAiProcessing ||
-                (!isPremium && aiUsageCount >= 2) ||
-                !isPremium
-                  ? "opacity-50 cursor-not-allowed !bg-gray-400 !shadow-none hover:scale-100"
-                  : ""
-              }
-            `}
-          title={
-            !isPremium && aiUsageCount >= 2
-              ? "오늘의 사용량(2회) 소진됐어요"
-              : "AI 음성 일정 쪼개기"
-          }
-        >
-          <Mic
-            className={`w-7 h-7 text-white ${
-              isAiProcessing ? "animate-spin" : ""
-            }`}
+          {/* 모듈화된 브레인덤프 모달 */}
+          <BrainDumpModal
+            isOpen={isBrainDumping}
+            prepCount={prepCount}
+            timeLeft={brainDumpTimeLeft}
+            recognizedText={recognizedText}
           />
-        </button> */}
-        {/* 🔥 하단 고정 CTA 버튼 (토스 공식 폼 제출 UI) */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 flex gap-3 z-50 lg:max-w-2xl lg:mx-auto">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex-1 bg-gray-100 text-gray-800 py-4 rounded-2xl font-bold text-[15px] hover:bg-gray-200 transition-colors"
-          >
-            새 일정 추가
-          </button>
-          <button
-            disabled={!isPremium || aiUsageCount >= 2 || isAiProcessing}
-            onClick={toggleBrainDump}
-            className={`flex-1 py-4 rounded-2xl font-bold text-[15px] transition-all text-white ${
-              !isPremium || aiUsageCount >= 2 || isAiProcessing
-                ? "bg-gray-300 cursor-not-allowed"
-                : isBrainDumping
-                ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/40"
-                : "bg-[#007AFF] hover:bg-blue-600 shadow-lg shadow-blue-500/30"
-            }`}
-          >
-            {isAiProcessing
-              ? "AI 처리 중..."
-              : isBrainDumping
-              ? "마이크 끄기"
-              : !isPremium
-              ? "AI 쪼개기 (프리미엄)"
-              : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
-          </button>
-        </div>
 
-        {/* 🔥 2안: 스나이퍼 모달 (극단적 포커스 뷰) */}
-        {showSniperModal && sniperTask && (
-          <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-6 animate-in fade-in duration-300">
-            {/* 상단 경고 메시지 */}
-            {/* <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-widest text-center animate-pulse">
+          {isAiProcessing && (
+            <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-black/90 text-white px-8 py-4 rounded-full text-sm font-bold animate-bounce z-50 shadow-xl">
+              🧠 AI가 일정을 재배열 하는 중이에요...
+            </div>
+          )}
+
+          {/* 🔥 하단 고정 CTA 버튼 (토스 공식 폼 제출 UI) */}
+          <FixedBottomCTA.Double
+            leftButton={
+              <Button
+                color="dark"
+                variant="weak"
+                size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
+                onClick={() => setIsModalOpen(true)}
+              >
+                새 일정 추가
+              </Button>
+            }
+            rightButton={
+              <Button
+                size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
+                loading={isAiProcessing}
+                disabled={!isPremium || aiUsageCount >= 2 || isAiProcessing}
+                onClick={toggleBrainDump}
+              >
+                {isBrainDumping
+                  ? "마이크 끄기"
+                  : !isPremium
+                  ? "AI 쪼개기 (프리미엄)"
+                  : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
+              </Button>
+            }
+          />
+
+          {/* 🔥 2안: 스나이퍼 모달 (극단적 포커스 뷰) */}
+          {showSniperModal && sniperTask && (
+            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-6 animate-in fade-in duration-300">
+              {/* 상단 경고 메시지 */}
+              {/* <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-widest text-center animate-pulse">
               딴생각 보다는 지금 이것부터 같이 해요.
             </h2> */}
-            <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-wide text-center animate-pulse">
-              지금은 이 일정에 집중해 볼까요?
-            </h2>
+              <h2 className="text-white text-lg md:text-2xl font-bold mb-8 tracking-wide text-center animate-pulse">
+                지금은 이 일정에 집중해 볼까요?
+              </h2>
 
-            {/* 거대한 1순위 카드 */}
-            <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-[0_0_80px_rgba(0,122,255,0.4)] flex flex-col items-center text-center transform transition-all scale-100 animate-in zoom-in-95 duration-500">
-              <span className="text-[#007AFF] text-xs font-bold tracking-widest uppercase mb-4 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
-                Priority #1
-              </span>
+              {/* 거대한 1순위 카드 */}
+              <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-[0_0_80px_rgba(0,122,255,0.4)] flex flex-col items-center text-center transform transition-all scale-100 animate-in zoom-in-95 duration-500">
+                <span className="text-[#007AFF] text-xs font-bold tracking-widest uppercase mb-4 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
+                  Priority #1
+                </span>
 
-              <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 leading-snug break-words">
-                {sniperTask.title}
-              </h3>
+                <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 leading-snug break-words">
+                  {sniperTask.title}
+                </h3>
 
-              {sniperTask.description && (
-                <p className="text-gray-500 font-medium mb-10 text-base md:text-lg">
-                  {sniperTask.description}
-                </p>
-              )}
+                {sniperTask.description && (
+                  <p className="text-gray-500 font-medium mb-10 text-base md:text-lg">
+                    {sniperTask.description}
+                  </p>
+                )}
 
-              <div className="w-full space-y-3">
-                {/* 압도적인 크기의 시작 버튼 */}
-                <button
-                  onClick={() => {
-                    setShowSniperModal(false);
-                    toggleFocus(sniperTask); // 🔥 아까 고친 '맨 위로 올리며 진행 중 탭 이동' 로직이 여기서 터짐!
-                  }}
-                  className="w-full bg-[#007AFF] text-white text-lg font-bold py-5 rounded-2xl shadow-lg shadow-blue-500/40 hover:bg-blue-600 transition-all flex items-center justify-center gap-3 hover:scale-[1.02]"
-                >
-                  <Play className="w-6 h-6 fill-current" /> 지금 바로 시작해요!
-                </button>
+                <div className="w-full space-y-3">
+                  {/* 압도적인 크기의 시작 버튼 */}
+                  <button
+                    onClick={() => {
+                      setShowSniperModal(false);
+                      toggleFocus(sniperTask); // 🔥 아까 고친 '맨 위로 올리며 진행 중 탭 이동' 로직이 여기서 터짐!
+                    }}
+                    className="w-full bg-[#007AFF] text-white text-lg font-bold py-5 rounded-2xl shadow-lg shadow-blue-500/40 hover:bg-blue-600 transition-all flex items-center justify-center gap-3 hover:scale-[1.02]"
+                  >
+                    <Play className="w-6 h-6 fill-current" /> 지금 바로
+                    시작해요!
+                  </button>
 
-                {/* 도망갈 구멍 (작게) */}
-                <button
-                  onClick={() => setShowSniperModal(false)}
-                  className="w-full text-gray-400 font-bold py-3 hover:text-gray-600 transition-colors text-sm"
-                >
-                  닫기
-                </button>
+                  {/* 도망갈 구멍 (작게) */}
+                  <button
+                    onClick={() => setShowSniperModal(false)}
+                    className="w-full text-gray-400 font-bold py-3 hover:text-gray-600 transition-colors text-sm"
+                  >
+                    닫기
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
 
-      <AddTaskModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAdd={handleAddTask}
-      />
-    </div>
+        <AddTaskModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onAdd={handleAddTask}
+        />
+      </div>
+    </TDSMobileAITProvider>
   );
 }
 
