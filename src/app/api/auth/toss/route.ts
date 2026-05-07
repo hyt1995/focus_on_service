@@ -32,11 +32,11 @@ export async function POST(req: Request) {
           { status: 400 }
         );
 
-      const certString = (process.env.TOSS_CLIENT_CERT || "").replace(
+      const certString = (process.env.TIME_DIVE_MTLS_PUBLIC || "").replace(
         /\\n/g,
         "\n"
       );
-      const keyString = (process.env.TOSS_CLIENT_KEY || "").replace(
+      const keyString = (process.env.TIME_DIVE_MTLS_PRIVATE || "").replace(
         /\\n/g,
         "\n"
       );
