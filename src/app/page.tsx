@@ -213,9 +213,14 @@ function MainDashboard({
     }
   };
 
+  const isFetchingInitialDataRef = useRef(false);
+
   // 🌟 1. userName이 세팅된 후에만 프리미엄 확인을 돌도록 의존성 배열 추가!
   useEffect(() => {
     if (!userName) return; // 닉네임을 아직 못 가져왔으면 API 쏘지 말고 대기!
+    if (isFetchingInitialDataRef.current) return;
+
+    isFetchingInitialDataRef.current = true;
 
     checkPremiumStatus();
   }, [userName]);
