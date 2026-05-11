@@ -53,8 +53,7 @@ export async function POST(req: Request) {
 
       const tokenRes = await axios.post(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/user/oauth2/generate-token",
-        // { authorizationCode, referrer },
-        { authorizationCode },
+        { authorizationCode, referrer },
         {
           httpsAgent,
           // 🌟 시니어의 안전장치: JSON 명찰을 강제로 붙입니다!
