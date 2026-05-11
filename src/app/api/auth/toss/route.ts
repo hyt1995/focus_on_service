@@ -9,6 +9,7 @@ import { SignJWT } from "jose";
 import crypto from "crypto";
 import https from "https";
 import axios from "axios";
+import decryptTossData from "@/utils/tossLoginCrypt";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
@@ -20,15 +21,15 @@ export async function POST(req: Request) {
     console.log("🚀 [토스 발사 준비] AuthCode:", authorizationCode);
     console.log("🚀 [토스 발사 준비] Referrer:", referrer);
 
-    let tossUserCI = "";
+    let tossUserUID = ""; // 🌟 CI 대신 고유 ID로 사용할 변수명 변경 (UserKey 기반)
     let tossUserName = "";
-    let tossUserPhone = "";
+    let tossUserGender = "";
 
     if (authorizationCode === "LOCAL_TEST_CODE") {
       console.log("🛠️ [백엔드] 통신 우회! 가짜 테스트 유저를 생성합니다.");
-      tossUserCI = "local_test_uid_777";
+      tossUserUID = "local_test_uid_777";
       tossUserName = "로컬테스트";
-      tossUserPhone = "010-0000-0000";
+      tossUserGender = "MALE";
     } else {
       if (!authorizationCode)
         return NextResponse.json(
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
         rejectUnauthorized: false,
       });
 
+      // [STEP 1] 토큰 발급
       const tokenRes = await axios.post(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/user/oauth2/generate-token",
         {
@@ -65,6 +67,7 @@ export async function POST(req: Request) {
       );
       const accessToken = tokenRes.data.success.accessToken;
 
+      // [STEP 2] 유저 정보 조회 (GET)
       // 🌟 GET 방식으로 바꾸고, 토큰을 Authorization 헤더에 Bearer 방식으로 넣습니다. Body는 비웁니다.
       const userRes = await axios.get(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/user/oauth2/login-me",
@@ -79,35 +82,38 @@ export async function POST(req: Request) {
 
       // (임시 확인용) 암호화된 데이터를 먼저 콘솔에 찍어봅니다.
       console.log("✅ 토스 유저 정보 획득 성공:", userRes.data);
+      const userData = userRes.data.success;
+      console.log("✅ 토스 유저 정보 획득 성공:", userData);
 
-      const encryptedData = userRes.data.encryptedData || userRes.data;
-      const decryptKey = process.env.TOSS_ADDITIONAL_AUTHENTICATED_DATA || "";
+      // 🌟 1. 환경변수 세팅: 토스에서 이메일로 받은 복호화 키(32자리)와 AAD
+      const DECRYPT_KEY = process.env.TOSS_DECRYPT_KEY || "";
+      const DECRYPT_AAD = process.env.TOSS_AAD || "";
 
-      const key = Buffer.from(decryptKey.substring(0, 32), "utf-8");
-      const iv = Buffer.from(decryptKey.substring(32, 48), "utf-8");
-      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-      let decryptedStr = decipher.update(encryptedData, "base64", "utf8");
-      decryptedStr += decipher.final("utf8");
+      // 🌟 2. 개별 필드 복호화 진행
+      tossUserName =
+        decryptTossData(userData.name, DECRYPT_KEY, DECRYPT_AAD) || "토스유저";
+      const decryptedGender =
+        decryptTossData(userData.gender, DECRYPT_KEY, DECRYPT_AAD) || "";
 
-      const realTossUser = JSON.parse(decryptedStr);
-
-      tossUserCI = realTossUser.ci || `toss_${Date.now()}`;
-      tossUserName = realTossUser.name || "토스유저";
-      tossUserPhone = realTossUser.phone || "";
+      // 🌟 3. 데이터베이스 저장용 고유 ID 추출 (CI가 null이므로 무조건 userKey 사용!)
+      tossUserUID = userData.userKey.toString();
+      console.log(
+        `🔓 복호화 성공! 환영합니다, ${tossUserName}님! (성별: ${decryptedGender})`
+      );
     }
 
     /* ======= 🚨 DB 저장 스위치 (출시 전: 켬 / 출시 후: 끔) ======= */
     // 지금은 모든 유저를 저장한다. 나중에 firebase 비용이 걱정될때 삭제할 것
 
     // 🌟 어드민 대신 클라이언트 SDK(setDoc) 방식으로 변경 완료!
-    const userRef = doc(db, "Users", tossUserCI);
+    const userRef = doc(db, "Users", tossUserUID);
     await setDoc(
       userRef,
       {
-        uid: tossUserCI,
+        uid: tossUserUID,
         provider: "toss",
         name: tossUserName,
-        phone: tossUserPhone,
+        gender: tossUserGender,
         lastLoginAt: new Date().toISOString(),
       },
       { merge: true }
@@ -117,7 +123,7 @@ export async function POST(req: Request) {
 
     /* ========================================================= */
 
-    const token = await new SignJWT({ uid: tossUserCI, name: tossUserName })
+    const token = await new SignJWT({ uid: tossUserUID, name: tossUserName })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("30d")
