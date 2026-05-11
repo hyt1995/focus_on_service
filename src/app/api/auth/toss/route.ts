@@ -54,8 +54,7 @@ export async function POST(req: Request) {
       const tokenRes = await axios.post(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/user/oauth2/generate-token",
         {
-          grantType: "AuthorizationCode", // 🌟 토스 서버 크래시를 막기 위한 필수 키워드 추가!
-          authorizationCode: authorizationCode,
+          authorizationCode,
           referrer,
         },
         {
@@ -64,19 +63,22 @@ export async function POST(req: Request) {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const accessToken = tokenRes.data.accessToken;
+      const accessToken = tokenRes.data.success.accessToken;
 
-      const userRes = await axios.post(
+      // 🌟 GET 방식으로 바꾸고, 토큰을 Authorization 헤더에 Bearer 방식으로 넣습니다. Body는 비웁니다.
+      const userRes = await axios.get(
         "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/user/oauth2/login-me",
-        {},
         {
-          httpsAgent, // 🌟 동업자의 완벽한 지적! 두 번째 통신에도 명찰 부착!
+          httpsAgent,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
         }
       );
+
+      // (임시 확인용) 암호화된 데이터를 먼저 콘솔에 찍어봅니다.
+      console.log("✅ 토스 유저 정보 획득 성공:", userRes.data);
 
       const encryptedData = userRes.data.encryptedData || userRes.data;
       const decryptKey = process.env.TOSS_ADDITIONAL_AUTHENTICATED_DATA || "";
