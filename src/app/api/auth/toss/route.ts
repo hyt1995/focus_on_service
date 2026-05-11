@@ -120,7 +120,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, token, userName: tossUserName });
   } catch (error: any) {
-    console.error("🚨 토스 로그인 통신 에러:", error?.response?.data || error);
+    console.log(
+      "🚨 토스 로그인 상세 에러:",
+      JSON.stringify(error?.response?.data || error?.response || error, null, 2)
+    );
     return NextResponse.json(
       { error: "로그인 처리 중 서버 에러가 발생했습니다." },
       { status: 500 }
