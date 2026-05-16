@@ -25,45 +25,39 @@ export async function POST(req: Request) {
     const userUid = payload.uid as string;
     const userName = payload.name as string;
 
-    const { paymentKey, orderId, amount } = await req.json();
+    const { orderId } = await req.json();
 
-    if (paymentKey === "LOCAL_TEST_PAYMENT_KEY") {
-      console.log(
-        `🛠️ [백엔드] 통신 우회! 가짜 영수증 프리미엄 승인: ${userName}`
+    if (!orderId) {
+      return NextResponse.json(
+        { error: "결제 정보(orderId)가 누락되었습니다." },
+        { status: 400 }
       );
-    } else {
-      if (!paymentKey || !orderId || !amount) {
-        return NextResponse.json(
-          { error: "결제 정보가 누락되었습니다." },
-          { status: 400 }
-        );
-      }
-
-      const certString = (process.env.TIME_DIVE_MTLS_PUBLIC || "").replace(
-        /\\n/g,
-        "\n"
-      );
-      const keyString = (process.env.TIME_DIVE_MTLS_PRIVATE || "").replace(
-        /\\n/g,
-        "\n"
-      );
-
-      const httpsAgent = new https.Agent({
-        cert: certString,
-        key: keyString,
-        rejectUnauthorized: false,
-      });
-
-      const res = await axios.post(
-        "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/payment/confirm",
-        { paymentKey, orderId, amount },
-        { httpsAgent }
-      );
-
-      console.log("✅ 토스 승인 성공:", res.data);
-
-      console.log(`✅ [실제 환경] 토스 결제 승인 완료: ${userName}`);
     }
+
+    const certString = (process.env.TIME_DIVE_MTLS_PUBLIC || "").replace(
+      /\\n/g,
+      "\n"
+    );
+    const keyString = (process.env.TIME_DIVE_MTLS_PRIVATE || "").replace(
+      /\\n/g,
+      "\n"
+    );
+
+    const httpsAgent = new https.Agent({
+      cert: certString,
+      key: keyString,
+      rejectUnauthorized: false,
+    });
+
+    const res = await axios.post(
+      "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/payment/confirm",
+      { orderId },
+      { httpsAgent }
+    );
+
+    console.log("✅ 토스 승인 성공:", res.data);
+
+    console.log(`✅ [실제 환경] 토스 결제 승인 완료: ${userName}`);
 
     // 🌟 어드민 대신 클라이언트 SDK(setDoc) 방식으로 프리미엄 승급 완료!
     const userRef = doc(db, "Users", userUid);
@@ -72,6 +66,7 @@ export async function POST(req: Request) {
       {
         isPremium: true,
         premiumActivatedAt: new Date().toISOString(),
+        premiumOrderId: orderId, // 🌟 이 줄을 추가해서 주문번호도 같이 DB에 남깁니다.
       },
       { merge: true }
     );
