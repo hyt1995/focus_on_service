@@ -92,13 +92,13 @@ export async function POST(req: Request) {
       // 🌟 2. 개별 필드 복호화 진행
       tossUserName =
         decryptTossData(userData.name, DECRYPT_KEY, DECRYPT_AAD) || "토스유저";
-      const decryptedGender =
+      tossUserGender =
         decryptTossData(userData.gender, DECRYPT_KEY, DECRYPT_AAD) || "";
 
       // 🌟 3. 데이터베이스 저장용 고유 ID 추출 (CI가 null이므로 무조건 userKey 사용!)
       tossUserUID = userData.userKey.toString();
       console.log(
-        `🔓 복호화 성공! 환영합니다, ${tossUserName}님! (성별: ${decryptedGender})`
+        `🔓 복호화 성공! 환영합니다, ${tossUserName}님! (성별: ${tossUserGender})`
       );
     }
 
@@ -123,7 +123,11 @@ export async function POST(req: Request) {
 
     /* ========================================================= */
 
-    const token = await new SignJWT({ uid: tossUserUID, name: tossUserName })
+    const token = await new SignJWT({
+      uid: tossUserUID,
+      name: tossUserName,
+      gender: tossUserGender,
+    })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("30d")

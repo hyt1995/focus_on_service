@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     const userUid = payload.uid as string;
     const userName = payload.name as string;
+    const gender = payload.gender as string;
 
     const { orderId } = await req.json();
 
@@ -63,12 +64,6 @@ export async function POST(req: Request) {
     await setDoc(
       userRef,
       {
-        // 1. 유저 기본 정보 (빈 방에 명패 달기)
-        uid: userUid,
-        name: userName || "토스유저",
-        provider: "toss",
-        gender: "", // 필요시 프론트나 토큰에서 받아와서 넣을 수 있습니다.
-        lastLoginAt: new Date().toISOString(),
         isPremium: true,
         premiumActivatedAt: new Date().toISOString(),
         premiumOrderId: orderId, // 🌟 이 줄을 추가해서 주문번호도 같이 DB에 남깁니다.
