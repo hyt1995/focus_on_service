@@ -36,11 +36,14 @@ export function usePremiumPayment(onUpgrade?: () => void) {
             try {
               // (선택) 여기서 내 백엔드 서버에 "이 유저 프리미엄 줬어!" 라고 저장하는 API를 찔러도 됩니다.
               const token = window.localStorage?.getItem("focus_auth_token");
-              const response = await fetch("/api/payments/grant", {
-                method: "POST",
-                body: JSON.stringify({ orderId: orderId }),
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              const response = await fetch(
+                "https://project-a7app.vercel.app/api/payments/confirm",
+                {
+                  method: "POST",
+                  body: JSON.stringify({ orderId: orderId }),
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
 
               // 🔥 추가: 서버에서 에러(400, 500 등)를 뱉으면 강제로 에러를 발생시킵니다.
               if (!response.ok) {
