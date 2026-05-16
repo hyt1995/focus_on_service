@@ -67,25 +67,27 @@ export default function TaskCard({
   let startTimeStr = "-";
   let elapsedStr = "-";
   let remainingStr = "-";
-  const startMs = task.startedAt || task.lastStartedAt;
+
+  // 🌟 1. DB 값이 문자열로 넘어와도 강제로 숫자로 바꿔서 계산 오류를 방지합니다.
+  const rawStart = task.startedAt || task.lastStartedAt;
+  const startMs = rawStart ? new Date(rawStart).getTime() : null;
 
   if (startMs) {
     startTimeStr = new Date(startMs).toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
-    if (task.isActive) {
-      const elapsedMs = Math.max(0, currentTime - startMs);
-      elapsedStr = formatHighEndTime(elapsedMs); // 🔥 모듈화된 함수 사용
+    // if (task.isActive) {
+    const elapsedMs = Math.max(0, currentTime - startMs);
+    elapsedStr = formatHighEndTime(elapsedMs); // 🔥 모듈화된 함수 사용
 
-      if (task.deadline && task.deadline !== "D-Day") {
-        const remainingMs = Math.max(
-          0,
-          new Date(task.deadline).getTime() - currentTime
-        );
-        remainingStr = formatHighEndTime(remainingMs); // 🔥 모듈화된 함수 사용
-      }
+    if (task.deadline && task.deadline !== "D-Day") {
+      // 🌟 3. 마감 시간도 안전하게 숫자로 변환해서 계산합니다.
+      const deadMs = new Date(task.deadline).getTime();
+      const remainingMs = Math.max(0, deadMs - currentTime);
+      remainingStr = formatHighEndTime(remainingMs);
     }
+    // }
   }
 
   const handleSaveEdit = () => {

@@ -5,6 +5,16 @@ import { Image as ImageIcon, Check, Edit3, Download } from "lucide-react";
 import ReceiptCanvas from "@/components/ReceiptCanvas";
 import ControlPanel from "@/components/ControlPanel";
 import { exportReceipt } from "@/utils/exportReceipt";
+import {
+  Asset,
+  Button,
+  TextButton,
+  FixedBottomCTA,
+  Badge,
+  BottomSheet,
+  TextField,
+  TextArea,
+} from "@toss/tds-mobile";
 
 interface TaskItem {
   name: string;
@@ -43,6 +53,9 @@ export default function TimeReceiptView({
     type: "image" | "video";
   } | null>(null);
 
+  // 🌟 추가: 설정창(ControlPanel) 렌더링을 제어할 상태
+  const [isControlSheetOpen, setIsControlSheetOpen] = useState(false);
+
   const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,8 +81,8 @@ export default function TimeReceiptView({
   const [logoPos, setLogoPos] = useState({ t: 90, l: 166 });
   const [photoSize, setPhotoSize] = useState({ w: 275, h: 165 });
   const [photoPos, setPhotoPos] = useState({ t: 225, l: 297 });
-  const [barcodeSize, setBarcodeSize] = useState({ w: 800, h: 100 });
-  const [barcodePos, setBarcodePos] = useState({ t: 0, l: 909 });
+  const [barcodeSize, setBarcodeSize] = useState({ w: 1500, h: 300 });
+  const [barcodePos, setBarcodePos] = useState({ t: 100, l: 909 });
   const [contentPos, setContentPos] = useState({ t: 420 });
   const [contentWidth, setContentWidth] = useState(90);
   const [contentGap, setContentGap] = useState(15);
@@ -256,18 +269,25 @@ export default function TimeReceiptView({
   // 🌟 4. page.tsx 내부 section에 예쁘게 쏙 들어가도록 껍데기 레이아웃 걷어냄
   return (
     <div className="w-full flex flex-col relative overflow-hidden bg-[#F9F9FB]">
-      <header className="flex items-center gap-5 p-4 lg:p-8 bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-gray-100 shrink-0 rounded-t-3xl">
-        <h1 className="text-xl font-bold text-gray-800">
+      <header className="flex items-center justify-between px-5 py-3 bg-white sticky top-0 z-20 shrink-0">
+        <h1 className="text-[20px] font-bold text-[#191F28] tracking-tight">
           {userName ? `${userName}님의 ` : ""}타임 영수증
         </h1>
+        <button
+          onClick={() => setIsControlSheetOpen(true)}
+          className="p-2 -mr-2 rounded-full transition-colors active:scale-95"
+        >
+          {/* <Asset.Icon name="setting" color="grey" /> */}
+        </button>
       </header>
 
       <section className="flex-1 w-full flex flex-col items-center relative">
-        <div className="w-full max-w-[420px] shrink-0 mt-4 px-4">
+        <div className="w-full max-w-[420px] shrink-0 mt-0 px-0">
           {isEditing ? (
-            <div className="space-y-4 bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+            <div className="flex flex-col px-4 py-0 bg-white w-full">
+              {/* 미디어 첨부 영역 */}
               <div className="flex items-center gap-4">
-                <label className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-2xl cursor-pointer hover:bg-gray-200 transition-colors border border-dashed border-gray-300 shrink-0 overflow-hidden relative">
+                <label className="flex flex-col items-center justify-center w-20 h-20 bg-[#F2F4F6] rounded-[16px] cursor-pointer hover:bg-[#E5E8EB] transition-colors shrink-0 overflow-hidden relative">
                   {draftMedia ? (
                     draftMedia.type === "video" ? (
                       <video
@@ -286,7 +306,12 @@ export default function TimeReceiptView({
                       />
                     )
                   ) : (
-                    <ImageIcon className="w-6 h-6 text-gray-400" />
+                    <div className="flex flex-col items-center gap-1">
+                      {/* <Asset.Icon name="image" color="grey" /> */}
+                      <span className="text-[12px] font-semibold text-[#8B95A1]">
+                        첨부
+                      </span>
+                    </div>
                   )}
                   <input
                     type="file"
@@ -295,175 +320,203 @@ export default function TimeReceiptView({
                     onChange={handleMediaUpload}
                   />
                 </label>
-                <div className="text-sm font-bold text-gray-600">
-                  {draftMedia
-                    ? draftMedia.type === "video"
-                      ? "동영상 첨부 완료!"
-                      : "사진 첨부 완료!"
-                    : "오늘 하루를 나타내는 사진/영상"}
+                <div className="flex flex-col">
+                  <span className="text-[16px] font-bold text-[#191F28]">
+                    오늘의 사진/영상
+                  </span>
+                  <span className="text-[13px] text-[#8B95A1] mt-0.5">
+                    {draftMedia
+                      ? "첨부 완료!"
+                      : "사진 / 영상 (8초 이내, 공유만 가능)"}
+                  </span>
                 </div>
               </div>
 
-              <div className="relative">
-                <textarea
-                  value={draftText}
-                  onChange={e => setDraftText(e.target.value)}
-                  maxLength={100}
-                  placeholder="오늘 하루 소감을 적어보세요! (최대 100자)"
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 p-4 pb-8 rounded-2xl outline-none focus:ring-2 focus:ring-[#007AFF]/50 transition-all font-medium resize-none min-h-[120px] leading-relaxed"
-                />
-                <div
-                  className={`absolute bottom-3 right-4 text-xs font-bold ${
-                    draftText.length === 100 ? "text-red-500" : "text-gray-400"
-                  }`}
-                >
-                  {draftText.length} / 100
-                </div>
-              </div>
+              {/* TDS TextField (TextArea) */}
+              <TextArea
+                label="오늘 소감"
+                variant="box" // {'box' | 'line' | 'big' | 'hero'}
+                value={draftText}
+                onChange={e => setDraftText(e.target.value)}
+                placeholder="오늘 하루 소감을 적어보세요! (최대 100자)"
+                maxLength={100}
+                style={{ height: "120px" }}
+              />
 
-              <button
+              {/* TDS Button */}
+              <Button
+                size="large"
                 onClick={handleApply}
-                className="w-full flex items-center justify-center gap-2 bg-[#007AFF] text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors"
+                className="mt-2 flex items-center justify-center gap-1.5"
               >
-                <Check className="w-5 h-5" /> 작성 완료
-              </button>
+                {/* <Asset.Icon name="check" color="white" />  */}
+                작성 완료
+              </Button>
             </div>
           ) : (
-            <div className="flex justify-between items-center bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-6 w-full">
-              <div className="text-sm font-bold text-[#007AFF]">
-                ✅ 영수증 데이터가 입력되었습니다.
+            <div className="flex justify-between items-center bg-white p-5 mx-5 rounded-[16px] border border-[#F2F4F6] mt-3 mb-0">
+              <div className="flex items-center gap-2">
+                <Badge color="blue" size="small" variant="fill">
+                  완료
+                </Badge>
+                <span className="text-[15px] font-bold text-[#191F28]">
+                  영수증 입력됨
+                </span>
               </div>
-              <button
+              <TextButton
+                size="small"
                 onClick={handleEdit}
-                className="flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1 text-[#8B95A1] hover:text-[#191F28] font-semibold"
               >
-                <Edit3 className="w-4 h-4" /> 다시 수정
-              </button>
+                {/* <Asset.Icon name="edit" color="blue" /> */}
+                다시 수정
+              </TextButton>
             </div>
           )}
         </div>
 
         {!isEditing && (
-          <div className="flex flex-col xl:flex-row items-start gap-8 py-10 bg-neutral-900 min-h-screen w-full relative px-4 lg:px-10 rounded-b-3xl">
-            <ControlPanel
-              paperSize={paperSize}
-              setPaperSize={setPaperSize}
-              titlePos={titlePos}
-              setTitlePos={setTitlePos}
-              logoSize={logoSize}
-              setLogoSize={setLogoSize}
-              logoPos={logoPos}
-              setLogoPos={setLogoPos}
-              photoSize={photoSize}
-              setPhotoSize={setPhotoSize}
-              photoPos={photoPos}
-              setPhotoPos={setPhotoPos}
-              barcodeSize={barcodeSize}
-              setBarcodeSize={setBarcodeSize}
-              barcodePos={barcodePos}
-              setBarcodePos={setBarcodePos}
-              contentPos={contentPos}
-              setContentPos={setContentPos}
-              contentWidth={contentWidth}
-              setContentWidth={setContentWidth}
-              contentGap={contentGap}
-              setContentGap={setContentGap}
-              contentHeight={contentHeight}
-            />
+          <div className="flex flex-col items-center bg-[#F9F9FB] min-h-screen w-full relative px-4 pb-48 pt-0">
+            <BottomSheet
+              open={isControlSheetOpen}
+              onClose={() => setIsControlSheetOpen(false)}
+            >
+              <div className="p-5 pb-8">
+                <h3 className="text-xl font-bold text-[#191F28] mb-6">
+                  영수증 설정
+                </h3>
+                <ControlPanel
+                  paperSize={paperSize}
+                  setPaperSize={setPaperSize}
+                  titlePos={titlePos}
+                  setTitlePos={setTitlePos}
+                  logoSize={logoSize}
+                  setLogoSize={setLogoSize}
+                  logoPos={logoPos}
+                  setLogoPos={setLogoPos}
+                  photoSize={photoSize}
+                  setPhotoSize={setPhotoSize}
+                  photoPos={photoPos}
+                  setPhotoPos={setPhotoPos}
+                  barcodeSize={barcodeSize}
+                  setBarcodeSize={setBarcodeSize}
+                  barcodePos={barcodePos}
+                  setBarcodePos={setBarcodePos}
+                  contentPos={contentPos}
+                  setContentPos={setContentPos}
+                  contentWidth={contentWidth}
+                  setContentWidth={setContentWidth}
+                  contentGap={contentGap}
+                  setContentGap={setContentGap}
+                  contentHeight={contentHeight}
+                />
+              </div>
+            </BottomSheet>
 
-            <div className="flex-1 flex flex-col items-center gap-10 w-full relative">
-              <button
-                onClick={handleDownload}
-                className="absolute top-0 right-0 z-50 flex items-center gap-2 bg-[#007AFF] text-white font-bold py-3 px-6 rounded-2xl shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-transform hover:scale-105"
-              >
-                <Download className="w-5 h-5" /> 영수증 저장하기
-              </button>
-
-              {isMeasuring && (
-                <div
-                  ref={measureRef}
-                  className="absolute top-0 left-0 invisible pointer-events-none"
-                  style={{ width: "380px" }}
-                >
-                  <div
-                    style={{ width: `${contentWidth}%` }}
-                    className="mx-auto text-left font-dos"
-                  >
-                    {/* 🌟 가짜 데이터 대신 진짜 데이터 매핑! */}
-                    {realInProgress.map((task, i) => (
-                      <div
-                        key={i}
-                        className="measure-in-progress text-[10px] border-b border-gray-100 pb-1 mb-2"
-                      >
-                        <div className="flex justify-between font-bold items-start">
-                          <span className="w-[65%] break-words">
-                            {task.name}
-                          </span>
-                          <span className="text-[7px]">{task.start}</span>
-                        </div>
-                        <div className="text-right text-[8px] mt-0.5">
-                          {task.duration}
-                        </div>
-                      </div>
-                    ))}
-                    {realDone.map((task, i) => (
-                      <div
-                        key={i}
-                        className="measure-done text-[10px] border-b border-gray-100 pb-1 mb-2"
-                      >
-                        <div className="flex justify-between font-bold items-start">
-                          <span className="w-[65%] break-words">
-                            {task.name}
-                          </span>
-                          <span className="text-[7px]">{task.start}</span>
-                        </div>
-                        <div className="text-right text-[8px] mt-0.5">
-                          {task.duration}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
+            {isMeasuring && (
               <div
-                id="receipt-export-container"
-                className="flex flex-col items-center gap-10 w-full pb-20 pt-16"
+                ref={measureRef}
+                className="absolute top-0 left-0 invisible pointer-events-none"
+                style={{ width: "380px" }}
               >
-                {!isMeasuring &&
-                  receiptPages.map((page, index) => (
-                    <div key={index} className="receipt-page">
-                      <ReceiptCanvas
-                        key={index}
-                        isFirstPage={index === 0}
-                        isLastPage={index === receiptPages.length - 1}
-                        bgSize={bgSize}
-                        paperSize={paperSize}
-                        titlePos={titlePos}
-                        logoSize={logoSize}
-                        logoPos={logoPos}
-                        photoSize={photoSize}
-                        photoPos={photoPos}
-                        barcodeSize={barcodeSize}
-                        barcodePos={barcodePos}
-                        contentPos={contentPos}
-                        contentWidth={contentWidth}
-                        contentGap={contentGap}
-                        appliedText={index === 0 ? appliedText : null}
-                        appliedMedia={index === 0 ? appliedMedia : null}
-                        workingTime={index === 0 ? mockWorkingTime : null}
-                        inProgressTasks={page.inProgress}
-                        doneTasks={page.done}
-                        totalDuration={
-                          index === receiptPages.length - 1
-                            ? totalDurationText
-                            : null
-                        }
-                      />
+                <div
+                  style={{ width: `${contentWidth}%` }}
+                  className="mx-auto text-left font-dos"
+                >
+                  {/* 🌟 가짜 데이터 대신 진짜 데이터 매핑! */}
+                  {realInProgress.map((task, i) => (
+                    <div
+                      key={i}
+                      className="measure-in-progress text-[10px] border-b border-gray-100 pb-1 mb-2"
+                    >
+                      <div className="flex justify-between font-bold items-start">
+                        <span className="w-[65%] break-words">{task.name}</span>
+                        <span className="text-[7px]">{task.start}</span>
+                      </div>
+                      <div className="text-right text-[8px] mt-0.5">
+                        {task.duration}
+                      </div>
                     </div>
                   ))}
+                  {realDone.map((task, i) => (
+                    <div
+                      key={i}
+                      className="measure-done text-[10px] border-b border-gray-100 pb-1 mb-2"
+                    >
+                      <div className="flex justify-between font-bold items-start">
+                        <span className="w-[65%] break-words">{task.name}</span>
+                        <span className="text-[7px]">{task.start}</span>
+                      </div>
+                      <div className="text-right text-[8px] mt-0.5">
+                        {task.duration}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+
+            <div
+              id="receipt-export-container"
+              className="flex flex-col items-center gap-0 w-full pb-20 pt-8"
+            >
+              {!isMeasuring &&
+                receiptPages.map((page, index) => (
+                  <div key={index} className="receipt-page">
+                    <ReceiptCanvas
+                      key={index}
+                      userName={userName}
+                      isFirstPage={index === 0}
+                      isLastPage={index === receiptPages.length - 1}
+                      bgSize={bgSize}
+                      paperSize={paperSize}
+                      titlePos={titlePos}
+                      logoSize={logoSize}
+                      logoPos={logoPos}
+                      photoSize={photoSize}
+                      photoPos={photoPos}
+                      barcodeSize={barcodeSize}
+                      barcodePos={barcodePos}
+                      contentPos={contentPos}
+                      contentWidth={contentWidth}
+                      contentGap={contentGap}
+                      appliedText={index === 0 ? appliedText : null}
+                      appliedMedia={index === 0 ? appliedMedia : null}
+                      workingTime={index === 0 ? mockWorkingTime : null}
+                      inProgressTasks={page.inProgress}
+                      doneTasks={page.done}
+                      totalDuration={
+                        index === receiptPages.length - 1
+                          ? totalDurationText
+                          : null
+                      }
+                    />
+                  </div>
+                ))}
             </div>
+            {/* <div className="flex-1 flex flex-col items-center gap-10 w-full relative"> */}
+            <FixedBottomCTA.Double
+              leftButton={
+                <Button
+                  variant="weak"
+                  color="primary"
+                  className="flex items-center justify-center gap-5 font-bold"
+                  onClick={() => setIsControlSheetOpen(true)}
+                >
+                  {/* <Asset.Icon name="setting" color="grey" /> */}
+                  영수증 꾸미기
+                </Button>
+              }
+              rightButton={
+                <Button
+                  className="flex items-center justify-center gap-2 font-bold"
+                  onClick={handleDownload}
+                >
+                  {/* <Asset.Icon name="download" color="white" /> */}
+                  영수증 저장
+                </Button>
+              }
+            />
           </div>
         )}
       </section>

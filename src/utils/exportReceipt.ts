@@ -288,13 +288,43 @@ export const exportReceipt = async ({
               const fileName = `timedive_${currentTimestamp}_${i + 1}.webm`;
 
               // [PC 다운로드 테스트용]
-              const link = document.createElement("a");
-              link.href = URL.createObjectURL(fixedBlob);
-              link.download = fileName;
-              link.click();
+              // const link = document.createElement("a");
+              // link.href = URL.createObjectURL(fixedBlob);
+              // link.download = fileName;
+              // link.click();
+
+              if (saveBase64Data) {
+                try {
+                  // 토스 네이티브 API는 base64 문자열, 파일명, 마임타입을 정확히 요구합니다.
+                  await saveBase64Data({
+                    data: base64data,
+                    fileName,
+                    mimeType: "video/webm",
+                  });
+
+                  alert(
+                    "성공적으로 기기에 저장되었습니다! 사진첩을 확인해 주세요."
+                  );
+                  resolve();
+                  return; // 완벽한 성공, 여기서 종료
+                } catch (error: any) {
+                  console.warn(
+                    "토스 저장 API 실패 (권한 문제일 수 있음):",
+                    error
+                  );
+                  alert(
+                    "기기 저장 권한이 필요하거나 알 수 없는 오류가 발생했습니다."
+                  );
+                  // 실패하더라도 바로 아래 Fallback 로직으로 넘어감
+                }
+              }
 
               // [토스 앱인토스용] (테스트 끝난 후 주석 해제)
-              /* await saveBase64Data({ data: base64data, fileName, mimeType: "video/webm" }); */
+              await saveBase64Data({
+                data: base64data,
+                fileName,
+                mimeType: "video/webm",
+              });
               resolve();
             };
           };
@@ -337,13 +367,35 @@ export const exportReceipt = async ({
         const fileName = `timedive_${currentTimestamp}_${i + 1}.png`;
 
         // [PC 다운로드 테스트용]
-        const link = document.createElement("a");
-        link.download = fileName;
-        link.href = dataUrl;
-        link.click();
+        // const link = document.createElement("a");
+        // link.download = fileName;
+        // link.href = dataUrl;
+        // link.click();
+
+        if (saveBase64Data) {
+          try {
+            await saveBase64Data({
+              data: base64data,
+              fileName,
+              mimeType: "image/png",
+            });
+
+            alert("성공적으로 기기에 저장되었습니다! 사진첩을 확인해 주세요.");
+            return; // 완벽한 성공, 여기서 종료
+          } catch (error: any) {
+            console.warn("토스 저장 API 실패 (권한 문제일 수 있음):", error);
+            alert(
+              "기기 저장 권한이 필요하거나 알 수 없는 오류가 발생했습니다."
+            );
+          }
+        }
 
         // [토스 앱인토스용] (테스트 끝난 후 주석 해제)
-        /* await saveBase64Data({ data: base64data, fileName, mimeType: "image/png" }); */
+        await saveBase64Data({
+          data: base64data,
+          fileName,
+          mimeType: "image/png",
+        });
       } catch (error) {
         console.error(`${i + 1}페이지 이미지 저장 실패:`, error);
       }

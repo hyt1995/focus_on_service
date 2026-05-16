@@ -28,6 +28,7 @@ interface ReceiptCanvasProps {
   contentPos: { t: number };
   contentWidth: number;
   contentGap: number;
+  userName: string | undefined;
 }
 export default function ReceiptCanvas(props: ReceiptCanvasProps) {
   const {
@@ -51,6 +52,7 @@ export default function ReceiptCanvas(props: ReceiptCanvasProps) {
     contentPos,
     contentWidth,
     contentGap,
+    userName,
   } = props;
 
   // 데이터 실제 높이를 측정하기 위한 변수들
@@ -68,7 +70,7 @@ export default function ReceiptCanvas(props: ReceiptCanvasProps) {
   const expenditure = [{ item: "---", price: "0" }];
 
   return (
-    <div className="flex flex-col xl:flex-row gap-8 items-start p-4">
+    <div className="flex flex-col xl:flex-row gap-8 items-start p-0">
       {/* 🌟 [실제 영수증 캔버스 영역] */}
       <div className="flex-1 overflow-auto bg-gray-100 p-10 rounded-3xl border border-gray-200">
         <div
@@ -101,7 +103,7 @@ export default function ReceiptCanvas(props: ReceiptCanvasProps) {
                   style={{ top: `${titlePos.t}px`, left: "0" }}
                 >
                   <h2 className="text-2xl font-black tracking-tighter">
-                    Time Receipt & 영탁
+                    Time Receipt & {userName ? userName : ""}
                   </h2>
                 </div>
 
@@ -239,7 +241,7 @@ export default function ReceiptCanvas(props: ReceiptCanvasProps) {
 
                   <div className="flex flex-col items-center mt-4">
                     <img
-                      src="/images/barcode_2.png"
+                      src="/images/barcode2.png"
                       alt="바코드"
                       // 🌟 기존에 있던 w-full h-10 (고정 크기)를 지우고 변수로 연결!
                       // 바코드 위치(barcodePos.t)는 위쪽 여백(marginTop)으로 적용해서 슬라이더 작동하게 만듦!

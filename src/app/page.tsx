@@ -26,7 +26,8 @@ import TimeReceiptView from "@/components/TimeReceiptView";
 import Paywall from "@/components/Paywall";
 // 🔥 [TDS 추가] 토스 디자인 컴포넌트들을 불러와요
 import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
-import { ConfirmDialog, Button, FixedBottomCTA } from "@toss/tds-mobile";
+import { Button, TextButton, FixedBottomCTA, Badge } from "@toss/tds-mobile";
+import mockTasks from "../../data/mockData";
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -288,9 +289,8 @@ function MainDashboard({
 
     try {
       const apiUrl = "https://project-a7app.vercel.app/api/daily/sync";
-      const res = await fetch(apiUrl, {
+      const res = await apiFetch("/api/daily/sync", {
         method: "POST",
-        headers: getHeaders(false),
         cache: "no-store",
       }); // 🔥 교체됨
       if (res.ok && typeof window !== "undefined") {
@@ -516,15 +516,18 @@ function MainDashboard({
         setActiveTab("in-progress");
       }
 
-      // 3. 배열 정렬 로직 (진행 중인 것들끼리 최신순 정렬)
-      return updatedTasks.sort((a, b) => {
-        // 둘 다 '진행 중(in-progress)' 상태일 때만 정렬
-        if (a.status === "in-progress" && b.status === "in-progress") {
-          // 방금 시작한(lastStartedAt이 가장 큰) 카드가 위로 오게 내림차순 정렬
-          return (b.lastStartedAt || 0) - (a.lastStartedAt || 0);
+      // 3. 🌟 수정: START를 누른 항목만 즉시 배열 맨 앞으로 끌어올림
+      if (isActive) {
+        const targetIndex = updatedTasks.findIndex(
+          t => String(t.id) === String(task.id)
+        );
+        if (targetIndex > -1) {
+          const [targetTask] = updatedTasks.splice(targetIndex, 1);
+          updatedTasks.unshift(targetTask); // 해당 카드를 리스트 최상단으로 강제 이동
         }
-        return 0; // 나머지는 기존 순서 유지
-      });
+      }
+
+      return updatedTasks;
     });
 
     const apiUrl = "https://project-a7app.vercel.app/api/tasks";
@@ -653,12 +656,30 @@ function MainDashboard({
       dragItem.current === dragOverItem.current
     )
       return;
-    const _tasks = [...tasks];
-    const draggedItemContent = _tasks.splice(dragItem.current, 1)[0];
-    _tasks.splice(dragOverItem.current, 0, draggedItemContent);
+
+    // 🌟 수정: 현재 보고 있는 탭의 리스트와 나머지 리스트를 분리
+    const currentTabTasks = tasks.filter(
+      t => (t.status || "todo") === activeTab
+    );
+    const otherTasks = tasks.filter(t => (t.status || "todo") !== activeTab);
+
+    // 현재 탭 리스트 내부에서만 위치 변경
+    const draggedItemContent = currentTabTasks.splice(dragItem.current, 1)[0];
+    currentTabTasks.splice(dragOverItem.current, 0, draggedItemContent);
+
+    // 다시 하나로 합침
+    const _tasks = [...currentTabTasks, ...otherTasks];
     setTasks(_tasks);
+
     dragItem.current = null;
     dragOverItem.current = null;
+
+    // const _tasks = [...tasks];
+    // const draggedItemContent = _tasks.splice(dragItem.current, 1)[0];
+    // _tasks.splice(dragOverItem.current, 0, draggedItemContent);
+    // setTasks(_tasks);
+    // dragItem.current = null;
+    // dragOverItem.current = null;
 
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
     if (!isPremium) return;
@@ -858,9 +879,19 @@ function MainDashboard({
               key={schedule.id}
               className="relative bg-blue-50/40 border-[1.5px] border-[#007AFF] p-6 rounded-[24px] shadow-sm mb-4"
             >
-              <span className="absolute -top-3 left-6 bg-[#007AFF] text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
+              {/* <span className="absolute -top-3 left-6 bg-[#007AFF] text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
                 🗓️ 오늘의 중요 일정
-              </span>
+              </span> */}
+              <div className="absolute -top-3 left-6">
+                <Badge
+                  color="blue"
+                  size="small"
+                  variant="fill"
+                  style={{ padding: "4px 12px", fontSize: "11px" }}
+                >
+                  🗓️ 오늘의 중요 일정
+                </Badge>
+              </div>
               <div className="mb-4 pr-4">
                 <h3 className="text-lg font-bold text-gray-800 break-words">
                   {schedule.title}
@@ -876,19 +907,21 @@ function MainDashboard({
                     >
                       {schedule.description}
                     </p>
-                    <button
+                    <TextButton
+                      size="small"
                       onClick={() => toggleSpecialDesc(schedule.id)}
-                      className="flex items-center gap-1 text-[10px] font-bold text-[#007AFF] mt-1 bg-white px-2 py-0.5 rounded-full border border-blue-100 hover:bg-blue-100 transition-colors"
+                      style={{ minHeight: "auto", padding: "4px 0" }} // TDS 기본 터치영역(높이/패딩) 최소화
+                      className="mt-2 flex items-center gap-1 text-gray-500 font-medium"
                     >
                       {expandedSpecialIds.includes(schedule.id)
                         ? "접기"
                         : "자세히 보기"}{" "}
                       {expandedSpecialIds.includes(schedule.id) ? (
-                        <ChevronUp size={12} />
+                        <ChevronUp size={14} />
                       ) : (
-                        <ChevronDown size={12} />
+                        <ChevronDown size={14} />
                       )}
-                    </button>
+                    </TextButton>
                   </div>
                 )}
               </div>
@@ -913,8 +946,8 @@ function MainDashboard({
             </div>
           ) : (
             <>
-              {/* 3단 탭 UI (위아래 여백 대폭 축소: my-6 -> my-2) */}
-              <div className="flex justify-center gap-2 my-2">
+              {/* 탭 컨테이너의 좌우 여백을 채우고 버튼이 동일한 비율로 늘어나도록(flex-1) 수정 */}
+              <div className="flex w-full justify-between gap-2 my-4 px-1">
                 {[
                   { id: "todo", label: "진행 전" },
                   { id: "in-progress", label: "진행 중" },
@@ -923,11 +956,10 @@ function MainDashboard({
                   <Button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-24 h-10 rounded-full text-[13px] font-bold transition-all duration-300 ${
-                      activeTab === tab.id
-                        ? "bg-[#1C1C1E] text-white shadow-md"
-                        : "bg-white text-gray-400 border border-gray-200 hover:bg-gray-50"
-                    }`}
+                    size="small"
+                    // 선택된 탭은 확실하게 파란색(primary)으로, 나머지는 흐린 배경(light/weak)으로 처리
+                    variant={activeTab === tab.id ? "fill" : "weak"}
+                    className="flex-1 rounded-xl font-bold transition-colors duration-200"
                   >
                     {tab.label}
                   </Button>
@@ -983,11 +1015,19 @@ function MainDashboard({
     // page.tsx의 renderCurrentView 함수 내부
     if (currentView === "receipt") {
       // 🌟 대시보드에서 설정한 진짜 스케줄 시간을 영수증으로 통째로 넘겨줌!
+      // 🌟 [홍보 모드 스위치] 이 값을 true로 바꾸면 예쁜 목데이터가 나옵니다.
+      const isMockMode = false;
+
+      // 🌟 스위치 값에 따라 진짜 데이터를 줄지, 가짜 데이터를 줄지 결정합니다.
+      const renderTasks = isMockMode ? mockTasks : tasks;
+      // const renderSchedules = isMockMode ? mockSchedules : schedules;
+      const renderUserName = isMockMode ? "마케터 범고래" : userName; // 이름도 그럴싸하게 변경 가능
+
       return (
         <TimeReceiptView
-          tasks={tasks}
+          tasks={renderTasks}
           schedules={schedules}
-          userName={userName}
+          userName={renderUserName}
           workingTime={`${todayStartTime} ~ ${todayEndTime}`}
         />
       );
@@ -1015,6 +1055,7 @@ function MainDashboard({
           setCurrentView={setCurrentView}
           isMobileOpen={isSidebarOpen}
           setIsMobileOpen={setIsSidebarOpen}
+          openingTime={todayStartTime}
           closingTime={todayEndTime}
         />
 
@@ -1058,32 +1099,36 @@ function MainDashboard({
           )}
 
           {/* 🔥 하단 고정 CTA 버튼 (토스 공식 폼 제출 UI) */}
-          <FixedBottomCTA.Double
-            leftButton={
-              <Button
-                color="dark"
-                variant="weak"
-                size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
-                onClick={() => setIsModalOpen(true)}
-              >
-                새 일정 추가
-              </Button>
-            }
-            rightButton={
-              <Button
-                size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
-                loading={isAiProcessing}
-                disabled={!isPremium || aiUsageCount >= 2 || isAiProcessing}
-                onClick={toggleBrainDump}
-              >
-                {isBrainDumping
-                  ? "마이크 끄기"
-                  : !isPremium
-                  ? "AI 쪼개기 (프리미엄)"
-                  : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
-              </Button>
-            }
-          />
+          {/* 🌟 수정된 부분: currentView가 "home"일 때만 버튼을 보여줍니다 */}
+          {currentView === "home" && (
+            <FixedBottomCTA.Double
+              // className="!pt-2 !pb-1 "
+              leftButton={
+                <Button
+                  color="dark"
+                  variant="weak"
+                  size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  새 일정 추가
+                </Button>
+              }
+              rightButton={
+                <Button
+                  size="medium" // 🔥 토스 공식 규격 중 가장 날렵한 사이즈
+                  loading={isAiProcessing}
+                  disabled={!isPremium || aiUsageCount >= 2 || isAiProcessing}
+                  onClick={toggleBrainDump}
+                >
+                  {isBrainDumping
+                    ? "마이크 끄기"
+                    : !isPremium
+                    ? "AI 쪼개기 (프리미엄)"
+                    : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
+                </Button>
+              }
+            />
+          )}
 
           {/* 🔥 2안: 스나이퍼 모달 (극단적 포커스 뷰) */}
           {showSniperModal && sniperTask && (

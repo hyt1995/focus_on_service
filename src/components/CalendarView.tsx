@@ -178,11 +178,11 @@ const CalendarView: React.FC<Props> = ({
                 <button
                   key={day}
                   onClick={() => handleDateClick(day)}
-                  className="relative h-16 flex flex-col items-center justify-center rounded-xl text-lg font-medium text-gray-700 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all"
+                  className="relative h-12 sm:h-14 flex flex-col items-center justify-center rounded-xl text-base sm:text-lg font-medium text-gray-700 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all"
                 >
                   <span>{day}</span>
                   {hasSchedule && (
-                    <span className="absolute bottom-2 w-1.5 h-1.5 bg-green-500 rounded-full shadow-sm"></span>
+                    <span className="absolute bottom-1.5 sm:bottom-2 w-1.5 h-1.5 bg-green-500 rounded-full shadow-sm"></span>
                   )}
                 </button>
               );
@@ -207,15 +207,15 @@ const CalendarView: React.FC<Props> = ({
                     : ""
                 }`}
               >
-                <div className="flex flex-col gap-1">
-                  <span className="text-[13px] font-semibold text-[#8B95A1]">
+                <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-3">
+                  <span className="text-[12px] sm:text-[13px] font-semibold text-[#8B95A1]">
                     {schedule.date}
                   </span>
-                  <span className="text-[16px] font-medium text-[#191F28]">
+                  <span className="text-[15px] sm:text-[16px] font-medium text-[#191F28] truncate">
                     {schedule.title}
                   </span>
                 </div>
-                <div className="text-[15px] font-semibold text-[#3182F6]">
+                <div className="text-[13px] sm:text-[15px] font-bold text-[#3182F6] shrink-0">
                   {schedule.startTime} ~ {schedule.endTime}
                 </div>
               </div>
@@ -255,48 +255,51 @@ const CalendarView: React.FC<Props> = ({
 
           <div className="overflow-y-auto">
             {isAdding ? (
-              /* --- 폼(Form) 영역: 토스 스타일 Input --- */
-              <div className="animate-in fade-in duration-300 space-y-3">
+              <div className="animate-in fade-in duration-300 flex flex-col gap-4 w-full">
                 <input
                   type="text"
                   placeholder="일정 제목"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="w-full bg-[#F2F4F6] rounded-[12px] px-4 py-4 text-[16px] font-medium text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6]"
+                  // 겹침 방지를 위해 mb-1 (margin-bottom)을 추가로 주어 확실하게 띄워줍니다.
+                  className="w-full h-[52px] bg-[#F2F4F6] rounded-[12px] px-4 text-[16px] font-medium text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] leading-normal mb-1"
                 />
                 <textarea
                   placeholder="상세 내역 (선택)"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  className="w-full bg-[#F2F4F6] rounded-[12px] px-4 py-4 text-[15px] text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] h-24 resize-none"
+                  className="w-full h-[100px] bg-[#F2F4F6] rounded-[12px] px-4 py-3.5 text-[15px] text-[#191F28] placeholder-[#8B95A1] outline-none focus:ring-1 focus:ring-[#3182F6] resize-none leading-relaxed"
                 />
-                <div className="flex gap-3 pt-2">
-                  <div className="flex-1 flex flex-col gap-1">
-                    <label className="text-[13px] text-[#6B7684] font-semibold pl-1">
+
+                {/* 4. 시간 입력 컨테이너: min-w-0을 추가해 작은 기기에서 인풋창이 터지는 것을 방어 */}
+                <div className="flex gap-2 sm:gap-3 pt-2">
+                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                    <label className="text-[12px] sm:text-[13px] text-[#6B7684] font-semibold pl-1">
                       시작 시간
                     </label>
+                    {/* 5. 모바일 기본 UI 여백 때문에 잘리지 않도록 높이 h-[48px] 고정 및 text-center 처리 */}
                     <input
                       type="time"
                       value={startTime}
                       onChange={e => setStartTime(e.target.value)}
-                      className="w-full bg-[#F2F4F6] rounded-[12px] px-4 py-3 text-[16px] outline-none"
+                      className="w-full h-[48px] bg-[#F2F4F6] rounded-[12px] px-1 sm:px-3 text-[14px] sm:text-[16px] text-center outline-none"
                     />
                   </div>
-                  <div className="flex-1 flex flex-col gap-1">
-                    <label className="text-[13px] text-[#3182F6] font-bold pl-1">
+                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                    <label className="text-[12px] sm:text-[13px] text-[#3182F6] font-bold pl-1">
                       마감 시간 ★
                     </label>
                     <input
                       type="time"
                       value={endTime}
                       onChange={e => setEndTime(e.target.value)}
-                      className="w-full bg-[#E8F3FF] text-[#3182F6] font-bold rounded-[12px] px-4 py-3 text-[16px] outline-none"
+                      className="w-full h-[48px] bg-[#E8F3FF] text-[#3182F6] font-bold rounded-[12px] px-1 sm:px-3 text-[14px] sm:text-[16px] text-center outline-none"
                     />
                   </div>
                 </div>
 
-                {/* 토스 TDS 버튼 */}
-                <div className="flex gap-3 mt-6 pt-4">
+                {/* 6. 저장 버튼 영역의 상단 여백을 늘려(mt-8) 입력칸과 시각적으로 완전히 분리 */}
+                <div className="flex gap-3 mt-8 pt-2">
                   <Button
                     color="dark"
                     variant="weak"
@@ -323,11 +326,11 @@ const CalendarView: React.FC<Props> = ({
                         key={s.id}
                         className="bg-[#F9FAFB] rounded-[16px] p-5 relative group"
                       >
-                        <div className="flex justify-between items-start mb-2 gap-2">
-                          <h4 className="font-bold text-[#191F28] text-[17px] flex-1">
+                        <div className="flex justify-between items-start mb-2 gap-2 w-full">
+                          <h4 className="font-bold text-[#191F28] text-[16px] sm:text-[17px] flex-1 min-w-0 truncate">
                             {s.title}
                           </h4>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button
                               onClick={() => handleOpenForm(s)}
                               className="text-[#8B95A1] hover:text-[#3182F6] p-1"
@@ -361,12 +364,12 @@ const CalendarView: React.FC<Props> = ({
                               onClick={() =>
                                 setExpandedId(expandedId === s.id ? null : s.id)
                               }
-                              className="w-full flex justify-center mt-1 text-[#B0B8C1]"
+                              className="w-full flex justify-center mt-2 py-1.5 text-[#B0B8C1] hover:text-[#8B95A1]"
                             >
                               {expandedId === s.id ? (
-                                <ChevronUp size={16} />
+                                <ChevronUp size={20} />
                               ) : (
-                                <ChevronDown size={16} />
+                                <ChevronDown size={20} />
                               )}
                             </button>
                           </div>

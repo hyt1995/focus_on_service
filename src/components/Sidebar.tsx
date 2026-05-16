@@ -12,6 +12,7 @@ interface Props {
   isMobileOpen: boolean;
   setIsMobileOpen: (isOpen: boolean) => void;
   closingTime?: any;
+  openingTime?: string;
 }
 
 export default function Sidebar({
@@ -20,33 +21,35 @@ export default function Sidebar({
   isMobileOpen,
   setIsMobileOpen,
   closingTime,
+  openingTime,
 }: Props) {
   // 🎯 [여기 추가!] 마감 시간을 체크하는 잠금(Lock) 함수
-  const handleReceiptClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleReceiptClick = () => {
     // 마감 시간 데이터가 혹시라도 아직 안 넘어왔다면 기본값 처리
-    const timeStr = closingTime || "18:00";
+    const startStr = openingTime || "08:30";
+    const endStr = closingTime || "18:00";
 
-    // "18:00" 문자열을 쪼개서 오늘 날짜의 시간으로 변환
-    const [hours, minutes] = timeStr.split(":").map(Number);
     const now = new Date();
-    const targetTime = new Date();
-    targetTime.setHours(hours, minutes, 0, 0);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // 디버깅용 (필요 없으면 지워도 됨)
-    console.log("현재 시간:", now.toLocaleTimeString());
-    console.log("화면의 마감 시간:", targetTime.toLocaleTimeString());
+    const [startH, startM] = startStr.split(":").map(Number);
+    const startMinutes = startH * 60 + startM;
 
-    // 마감 시간 전이면 이동 차단!
-    if (now < targetTime) {
-      e.preventDefault(); // 🔥 라우팅(화면 이동) 즉시 차단
+    const [endH, endM] = endStr.split(":").map(Number);
+    const endMinutes = endH * 60 + endM;
+
+    let isWorkingHour =
+      startMinutes < endMinutes
+        ? currentMinutes >= startMinutes && currentMinutes < endMinutes
+        : currentMinutes >= startMinutes || currentMinutes < endMinutes;
+
+    if (isWorkingHour) {
       alert(
-        `오늘 하루가 끝나지 않았습니다. (마감: ${timeStr})\n마감 시간 이후에 영수증을 발급할 수 있습니다.`
+        `지금은 집중하는 시간이에요. 🐳\n영수증은 업무 시간 외(${endStr} ~ 다음날 ${startStr})에만 확인 가능해요.`
       );
-      return;
+      return false; // 화면 이동 차단을 위한 false 반환
     }
-
-    // 조건 통과 시: e.preventDefault()를 안 했으므로 Link 태그가 자연스럽게 이동시켜 줌
-    if (setIsMobileOpen) setIsMobileOpen(false); // 모바일 메뉴만 살짝 닫아줌
+    return true; // 통과
   };
 
   return (
@@ -151,9 +154,7 @@ export default function Sidebar({
 
           <button
             onClick={(e: any) => {
-              if (typeof handleReceiptClick === "function") {
-                handleReceiptClick(e);
-              }
+              if (!handleReceiptClick()) return; // 함수가 false를 반환하면 아래 코드가 안 돌고 여기서 차단됨
               setCurrentView("receipt");
               if (setIsMobileOpen) setIsMobileOpen(false);
             }}
@@ -232,8 +233,7 @@ export default function Sidebar({
               <div className="pt-2 mt-2 border-t border-[#F2F4F6]">
                 <button
                   onClick={(e: any) => {
-                    if (typeof handleReceiptClick === "function")
-                      handleReceiptClick(e);
+                    if (!handleReceiptClick()) return; // 함수가 false를 반환하면 여기서 차단됨
                     setCurrentView("receipt");
                     if (setIsMobileOpen) setIsMobileOpen(false);
                   }}

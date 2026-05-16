@@ -104,25 +104,28 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
 
         {isEditing ? (
           <div
-            className="flex justify-center items-center gap-2 mb-2"
+            className="flex justify-between items-center gap-1.5 mb-2 w-full"
             onClick={e => e.stopPropagation()}
           >
+            {/* flex-1 min-w-0을 주어 좁은 화면에서는 자연스럽게 쪼그라들게 만듦 */}
             <input
               type="time"
               value={startTime}
               onChange={e => setStartTime(e.target.value)}
-              className="bg-[#F2F4F6] text-[#191F28] rounded-[8px] px-3 py-1.5 text-[14px] outline-none focus:ring-1 focus:ring-[#3182F6]"
+              className="flex-1 min-w-0 text-center bg-[#F2F4F6] text-[#191F28] rounded-[8px] px-1 sm:px-3 py-1.5 text-[13px] sm:text-[14px] outline-none focus:ring-1 focus:ring-[#3182F6]"
             />
-            <span className="text-[#8B95A1] text-[14px] font-bold">~</span>
+            <span className="text-[#8B95A1] text-[14px] font-bold shrink-0">
+              ~
+            </span>
             <input
               type="time"
               value={endTime}
               onChange={e => setEndTime(e.target.value)}
-              className="bg-[#E8F3FF] text-[#3182F6] font-bold rounded-[8px] px-3 py-1.5 text-[14px] outline-none focus:ring-1 focus:ring-[#3182F6]"
+              className="flex-1 min-w-0 text-center bg-[#E8F3FF] text-[#3182F6] font-bold rounded-[8px] px-1 sm:px-3 py-1.5 text-[13px] sm:text-[14px] outline-none focus:ring-1 focus:ring-[#3182F6]"
             />
             <button
               onClick={saveSchedule}
-              className="bg-[#3182F6] text-white text-[13px] px-3.5 py-1.5 rounded-[8px] font-bold shadow-sm"
+              className="shrink-0 bg-[#3182F6] text-white text-[13px] px-3 sm:px-3.5 py-1.5 rounded-[8px] font-bold shadow-sm"
             >
               저장
             </button>
@@ -137,12 +140,14 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
         )}
 
         {!isEditing && (
-          <div className="flex justify-between items-center text-[12px] font-semibold tracking-tight px-1 relative">
-            <span className="text-left w-1/3 text-[#8B95A1]">{startTime}</span>
-            <span className="text-center w-1/3 font-bold text-[#191F28]">
+          <div className="flex justify-between items-center text-[11px] sm:text-[12px] font-semibold tracking-tight px-1 relative w-full">
+            <span className="text-left w-[30%] text-[#8B95A1] truncate">
+              {startTime}
+            </span>
+            <span className="text-center w-[40%] font-bold text-[#191F28] truncate">
               {elapsedStr}
             </span>
-            <span className="text-right w-1/3 pr-6 text-[#3182F6]">
+            <span className="text-right w-[30%] pr-6 text-[#3182F6] truncate">
               {remainingStr}
             </span>
 
@@ -177,10 +182,11 @@ const TodayTimeboxDashboard: React.FC<Props> = ({
                   key={s.id}
                   className="flex justify-between items-center bg-white p-3 rounded-[12px] border border-[#F2F4F6]"
                 >
-                  <span className="font-semibold text-[#191F28] text-[14px] truncate pr-2">
+                  {/* flex-1과 min-w-0을 추가해야만 제목이 길어질 때 뒷부분 시간을 밀어내지 않고 ... 으로 예쁘게 잘립니다 */}
+                  <span className="flex-1 min-w-0 font-semibold text-[#191F28] text-[14px] truncate pr-2">
                     {s.title}
                   </span>
-                  <span className="text-[#3182F6] font-bold text-[13px] shrink-0">
+                  <span className="text-[#3182F6] font-bold text-[12px] sm:text-[13px] shrink-0">
                     {s.startTime} ~ {s.endTime}
                   </span>
                 </div>

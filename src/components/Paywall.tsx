@@ -73,9 +73,9 @@ export default function Paywall({ onBack, onUpgrade }: PaywallProps) {
 
   return (
     // 토스 스타일: 배경색은 살짝 회색빛(gray-50) 또는 흰색, 전체 화면(h-screen) 사용
-    <div className="flex flex-col h-[100dvh] bg-white px-6 pt-12 pb-8 animate-in fade-in duration-300">
+    <div className="flex flex-col min-h-screen bg-white px-6 pt-12 pb-8 animate-in fade-in duration-300">
       {/* 상단 텍스트 영역 (토스 특유의 좌측 정렬 및 큰 타이포그래피) */}
-      <div className="flex-1 flex flex-col mt-8">
+      <div className="flex flex-col mt-8 mb-12">
         <span className="text-4xl mb-4 block">🔒</span>
         <h2 className="text-[26px] font-bold text-[#191F28] mb-4 leading-[1.4] tracking-tight">
           프리미엄 전용 기능
@@ -89,7 +89,6 @@ export default function Paywall({ onBack, onUpgrade }: PaywallProps) {
           결제가 필요합니다.
         </p>
       </div>
-
       {/* 하단 고정 버튼 영역 (Toss Bottom Button Style) */}
       <div className="flex flex-col gap-3 pb-safe">
         <button
