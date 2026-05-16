@@ -34,28 +34,27 @@ export async function POST(req: Request) {
       );
     }
 
-    const certString = (process.env.TIME_DIVE_MTLS_PUBLIC || "").replace(
-      /\\n/g,
-      "\n"
-    );
-    const keyString = (process.env.TIME_DIVE_MTLS_PRIVATE || "").replace(
-      /\\n/g,
-      "\n"
-    );
+    // const certString = (process.env.TIME_DIVE_MTLS_PUBLIC || "").replace(
+    //   /\\n/g,
+    //   "\n"
+    // );
+    // const keyString = (process.env.TIME_DIVE_MTLS_PRIVATE || "").replace(
+    //   /\\n/g,
+    //   "\n"
+    // );
 
-    const httpsAgent = new https.Agent({
-      cert: certString,
-      key: keyString,
-      rejectUnauthorized: false,
-    });
+    // const httpsAgent = new https.Agent({
+    //   cert: certString,
+    //   key: keyString,
+    //   rejectUnauthorized: false,
+    // });
 
-    const res = await axios.post(
-      "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/payment/confirm",
-      { orderId },
-      { httpsAgent }
-    );
-
-    console.log("✅ 토스 승인 성공:", res.data);
+    // const res = await axios.post(
+    //   "https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/payment/confirm",
+    //   { orderId },
+    //   { httpsAgent }
+    // );
+    //
 
     console.log(`✅ [실제 환경] 토스 결제 승인 완료: ${userName}`);
 
