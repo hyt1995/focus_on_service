@@ -167,6 +167,19 @@ export default function Sidebar({
             <FileText className="w-5 h-5" />
             <span>타임 영수증</span>
           </button>
+          {/* <button
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.localStorage.removeItem("focus_auth_token");
+                window.localStorage.clear();
+                alert("캐시가 초기화되었습니다. 다시 로그인해 주세요.");
+                window.location.reload();
+              }
+            }}
+            style={{ color: "#ef4444", fontWeight: "bold" }} // 눈에 잘 띄게 빨간색 스타일(선택)
+          >
+            로그아웃
+          </button> */}
         </nav>
       </aside>
 
@@ -245,6 +258,19 @@ export default function Sidebar({
                 >
                   🧾 타임 영수증
                 </button>
+                {/* <button
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.localStorage.removeItem("focus_auth_token");
+                      window.localStorage.clear();
+                      alert("캐시가 초기화되었습니다. 다시 로그인해 주세요.");
+                      window.location.reload();
+                    }
+                  }}
+                  style={{ color: "#ef4444", fontWeight: "bold" }} // 눈에 잘 띄게 빨간색 스타일(선택)
+                >
+                  로그아웃
+                </button> */}
               </div>
             </div>
           </div>

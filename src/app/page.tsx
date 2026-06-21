@@ -28,10 +28,12 @@ import Paywall from "@/components/Paywall";
 import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
 import { Button, TextButton, FixedBottomCTA, Badge } from "@toss/tds-mobile";
 import mockTasks from "../../data/mockData";
+import OnboardingCarousel from "@/components/OnboardingCarousel";
 
 export default function FocusApp() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showMainService, setShowMainService] = useState(false);
 
   useEffect(() => {
     // 🔥 수술 포인트: 웹뷰 앱에 로컬스토리지가 없어서 null일 경우를 대비해 '?' 추가
@@ -53,16 +55,23 @@ export default function FocusApp() {
   if (!userName) return <LoginGate onLogin={setUserName} />;
 
   return (
-    <MainDashboard
-      userName={userName}
-      onLogout={() => {
-        if (typeof window !== "undefined") {
-          window.localStorage?.removeItem("focus_user_name");
-        }
-        // localStorage.removeItem("focus_user_name");
-        setUserName(null);
-      }}
-    />
+    <>
+      {!showMainService ? (
+        // 처음 온 유저에게는 온보딩을 강제 노출, 끝나면 상태값 스위칭
+        <OnboardingCarousel onComplete={() => setShowMainService(true)} />
+      ) : (
+        <MainDashboard
+          userName={userName}
+          onLogout={() => {
+            if (typeof window !== "undefined") {
+              window.localStorage?.removeItem("focus_user_name");
+            }
+            // localStorage.removeItem("focus_user_name");
+            setUserName(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -75,7 +84,7 @@ function MainDashboard({
   // --- 상태 관리 ---
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeTaskId, setActiveTaskId] = useState<number | string | null>(
-    null
+    null,
   );
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [currentView, setCurrentView] = useState("home");
@@ -131,8 +140,8 @@ function MainDashboard({
   const updateTaskStatus = async (id: number | string, newStatus: string) => {
     setTasks(
       tasks.map(t =>
-        String(t.id) === String(id) ? { ...t, status: newStatus } : t
-      )
+        String(t.id) === String(id) ? { ...t, status: newStatus } : t,
+      ),
     );
     setActiveTab(newStatus);
 
@@ -158,7 +167,7 @@ function MainDashboard({
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [recognizedText, setRecognizedText] = useState("");
   const [brainDumpTimeLeft, setBrainDumpTimeLeft] = useState<number | null>(
-    null
+    null,
   );
   const [aiUsageCount, setAiUsageCount] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
@@ -168,7 +177,7 @@ function MainDashboard({
   const [expandedSpecialIds, setExpandedSpecialIds] = useState<string[]>([]);
   const toggleSpecialDesc = (id: string) =>
     setExpandedSpecialIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
     );
 
   // 프론트엔드 전용 1분(60000ms) 타이머
@@ -356,7 +365,7 @@ function MainDashboard({
     if (brainDumpTimeLeft > 0) {
       const timer = setTimeout(
         () => setBrainDumpTimeLeft(brainDumpTimeLeft - 1),
-        1000
+        1000,
       );
       return () => clearTimeout(timer);
     }
@@ -380,7 +389,7 @@ function MainDashboard({
   const handleAddTask = async (
     title: string,
     description: string,
-    deadline: string
+    deadline: string,
   ) => {
     const newTask = {
       id: Date.now(),
@@ -412,14 +421,14 @@ function MainDashboard({
   const updateCardDetails = async (
     id: number | string,
     newTitle: string,
-    newDesc: string
+    newDesc: string,
   ) => {
     setTasks(
       tasks.map(t =>
         String(t.id) === String(id)
           ? { ...t, title: newTitle, description: newDesc }
-          : t
-      )
+          : t,
+      ),
     );
 
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
@@ -439,10 +448,10 @@ function MainDashboard({
 
   const handleUpdateSchedule = async (
     id: string,
-    updatedSchedule: Schedule
+    updatedSchedule: Schedule,
   ) => {
     const updatedSchedules = schedules.map(s =>
-      s.id === id ? updatedSchedule : s
+      s.id === id ? updatedSchedule : s,
     );
     setSchedules(updatedSchedules);
 
@@ -508,7 +517,7 @@ function MainDashboard({
               // isActive가 true(START 누름)면 자동으로 'in-progress' 탭으로 이동
               status: isActive ? "in-progress" : t.status,
             }
-          : t
+          : t,
       );
 
       // 2. 만약 START를 누른 거라면 강제로 '진행 중' 탭으로 화면 전환
@@ -519,7 +528,7 @@ function MainDashboard({
       // 3. 🌟 수정: START를 누른 항목만 즉시 배열 맨 앞으로 끌어올림
       if (isActive) {
         const targetIndex = updatedTasks.findIndex(
-          t => String(t.id) === String(task.id)
+          t => String(t.id) === String(task.id),
         );
         if (targetIndex > -1) {
           const [targetTask] = updatedTasks.splice(targetIndex, 1);
@@ -630,8 +639,8 @@ function MainDashboard({
 
     setTasks(
       tasks.map(t =>
-        String(t.id) === String(id) ? { ...t, deadline: formattedDeadline } : t
-      )
+        String(t.id) === String(id) ? { ...t, deadline: formattedDeadline } : t,
+      ),
     );
 
     // 🌟 방어막: 체험판이면 서버로 상태값 보내지 않고 종료!
@@ -659,7 +668,7 @@ function MainDashboard({
 
     // 🌟 수정: 현재 보고 있는 탭의 리스트와 나머지 리스트를 분리
     const currentTabTasks = tasks.filter(
-      t => (t.status || "todo") === activeTab
+      t => (t.status || "todo") === activeTab,
     );
     const otherTasks = tasks.filter(t => (t.status || "todo") !== activeTab);
 
@@ -761,7 +770,7 @@ function MainDashboard({
       // 4️⃣ 소켓 통신선 미리 연결해두기
       const socket = new WebSocket(
         "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
-        ["token", data.token]
+        ["token", data.token],
       );
       socketRef.current = socket;
 
@@ -775,7 +784,7 @@ function MainDashboard({
         `마이크 에러:\n${
           err.message ||
           "마이크 접근 권한이 필요해요. 휴대폰 설정에서 마이크 권한을 켜주세요."
-        }`
+        }`,
       );
     }
   };
@@ -789,7 +798,7 @@ function MainDashboard({
 
       const socket = new WebSocket(
         "wss://api.deepgram.com/v1/listen?model=nova-2&language=ko&interim_results=true&endpointing=false",
-        ["token", deepgramTokenRef.current]
+        ["token", deepgramTokenRef.current],
       );
       socketRef.current = socket;
 
@@ -845,7 +854,7 @@ function MainDashboard({
       };
       socket.onclose = event => {
         console.log(
-          `🔒 Deepgram WebSocket Closed: Code ${event.code}, Reason: ${event.reason}`
+          `🔒 Deepgram WebSocket Closed: Code ${event.code}, Reason: ${event.reason}`,
         );
       };
     } catch (err: any) {
@@ -857,7 +866,7 @@ function MainDashboard({
 
   const todayObj = new Date();
   const formattedToday = `${todayObj.getFullYear()}-${String(
-    todayObj.getMonth() + 1
+    todayObj.getMonth() + 1,
   ).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
   const todaySchedules = schedules.filter(s => s.date === formattedToday);
 
@@ -969,7 +978,7 @@ function MainDashboard({
               {/* 탭 상태에 맞는 카드만 단 1번 렌더링 */}
               {(() => {
                 const filteredTasks = tasks?.filter(
-                  t => (t.status || "todo") === activeTab
+                  t => (t.status || "todo") === activeTab,
                 );
 
                 return filteredTasks.length > 0 ? (
@@ -1123,8 +1132,8 @@ function MainDashboard({
                   {isBrainDumping
                     ? "마이크 끄기"
                     : !isPremium
-                    ? "AI 쪼개기 (프리미엄)"
-                    : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
+                      ? "AI 쪼개기 (프리미엄)"
+                      : `AI 쪼개기 (${Math.max(0, 2 - aiUsageCount)}회 남음)`}
                 </Button>
               }
             />
