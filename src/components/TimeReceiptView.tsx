@@ -97,10 +97,10 @@ export default function TimeReceiptView({
     if (isNaN(d.getTime())) return "--";
     return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(
       2,
-      "0"
+      "0",
     )}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(
       2,
-      "0"
+      "0",
     )}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
@@ -112,7 +112,7 @@ export default function TimeReceiptView({
 
     const timeStr = `${String(hours).padStart(2, "0")}:${String(mins).padStart(
       2,
-      "0"
+      "0",
     )}분`;
     return days > 0 ? `${days}일 ${timeStr}` : timeStr;
   };
@@ -147,25 +147,52 @@ export default function TimeReceiptView({
     });
 
   // DONE 처리
+  // 수정 전
+  // const realDone: TaskItem[] = tasks
+  //   .filter(t => t.status === "done")
+  //   .map(t => {
+  //     const displayStartTime = formatTime(t.createdAt);
+
+  //     // 🔥 완료된 일정도 실제 start를 누른 적 없으면 무조건 "--"
+  //     if (!t.startedAt) {
+  //       return { name: t.title, start: displayStartTime, duration: "--" };
+  //     }
+
+  //     const startMs = new Date(t.startedAt).getTime();
+  //     const endMs = t.lastStartedAt
+  //       ? new Date(t.lastStartedAt).getTime()
+  //       : nowTime;
+
+  //     const durationMs = Math.max(0, endMs - startMs);
+  //     totalDurationMs += durationMs;
+  //     hasValidDuration = true;
+
+  //     return {
+  //       name: t.title,
+  //       start: displayStartTime,
+  //       duration: formatDurationMs(durationMs),
+  //     };
+  //   });
+
+  // 수정 후
+  // DONE 처리
   const realDone: TaskItem[] = tasks
     .filter(t => t.status === "done")
     .map(t => {
       const displayStartTime = formatTime(t.createdAt);
-
       // 🔥 완료된 일정도 실제 start를 누른 적 없으면 무조건 "--"
       if (!t.startedAt) {
         return { name: t.title, start: displayStartTime, duration: "--" };
       }
-
       const startMs = new Date(t.startedAt).getTime();
-      const endMs = t.lastStartedAt
-        ? new Date(t.lastStartedAt).getTime()
-        : nowTime;
+
+      // 🌟 [핵심 수술] page.tsx에서 구워준 고정 종료 시간(t.endedAt)이 있다면 그것을 사용하고,
+      // 만약 없다면(예외 방어) 현재 시간을 차선책으로 사용해 동결 자물쇠를 채웁니다.
+      const endMs = t.endedAt ? new Date(t.endedAt).getTime() : nowTime;
 
       const durationMs = Math.max(0, endMs - startMs);
       totalDurationMs += durationMs;
       hasValidDuration = true;
-
       return {
         name: t.title,
         start: displayStartTime,
@@ -188,24 +215,24 @@ export default function TimeReceiptView({
     if (!isMeasuring || !measureRef.current) return;
 
     const inProgressNodes = measureRef.current.querySelectorAll(
-      ".measure-in-progress"
+      ".measure-in-progress",
     );
     const doneNodes = measureRef.current.querySelectorAll(".measure-done");
 
     const inProgressHeights = Array.from(inProgressNodes).map(
-      node => (node as HTMLElement).offsetHeight
+      node => (node as HTMLElement).offsetHeight,
     );
     const doneHeights = Array.from(doneNodes).map(
-      node => (node as HTMLElement).offsetHeight
+      node => (node as HTMLElement).offsetHeight,
     );
 
     const totalInProgressHeight = inProgressHeights.reduce(
       (sum, h) => sum + h + contentGap,
-      0
+      0,
     );
     const totalDoneHeight = doneHeights.reduce(
       (sum, h) => sum + h + contentGap,
-      0
+      0,
     );
     const totalDataHeight = totalInProgressHeight + totalDoneHeight;
 

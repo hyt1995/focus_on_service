@@ -137,24 +137,56 @@ function MainDashboard({
   };
 
   // 2. 상태 변경 및 탭 강제 견인 함수
+  // const updateTaskStatus = async (id: number | string, newStatus: string) => {
+  //   setTasks(
+  //     tasks.map(t =>
+  //       String(t.id) === String(id) ? { ...t, status: newStatus } : t,
+  //     ),
+  //   );
+  //   setActiveTab(newStatus);
+
+  //   // 🌟 방어막: 체험판이면 여기서 함수 강제 종료 (DB에 쓰지 않음 = 비용 0원)
+  //   if (!isPremium) return;
+
+  //   try {
+  //     const apiUrl = "https://project-a7app.vercel.app/api/tasks";
+
+  //     await fetch(apiUrl, {
+  //       method: "PUT",
+  //       headers: getHeaders(true),
+  //       body: JSON.stringify({ id, updatedFields: { status: newStatus } }),
+  //     }); // 🔥 교체됨
+  //   } catch (error) {
+  //     console.error("상태 변경 에러:", error);
+  //     alert("서버 오류로 상태가 저장되지 않았어요.");
+  //   }
+  // };
+  // 수정 후
+  // 2. 상태 변경 및 탭 강제 견인 함수
   const updateTaskStatus = async (id: number | string, newStatus: string) => {
+    // 🌟 완료 탭('done')으로 갈 때만 종료 시간을 기록하고, 그 외에는 자물쇠를 풉니다.
+    const isDone = newStatus === "done";
+    const endedAtValue = isDone ? new Date().toISOString() : null;
+
     setTasks(
       tasks.map(t =>
-        String(t.id) === String(id) ? { ...t, status: newStatus } : t,
+        String(t.id) === String(id)
+          ? { ...t, status: newStatus, endedAt: endedAtValue }
+          : t,
       ),
     );
     setActiveTab(newStatus);
-
     // 🌟 방어막: 체험판이면 여기서 함수 강제 종료 (DB에 쓰지 않음 = 비용 0원)
     if (!isPremium) return;
-
     try {
       const apiUrl = "https://project-a7app.vercel.app/api/tasks";
-
       await fetch(apiUrl, {
         method: "PUT",
         headers: getHeaders(true),
-        body: JSON.stringify({ id, updatedFields: { status: newStatus } }),
+        body: JSON.stringify({
+          id,
+          updatedFields: { status: newStatus, endedAt: endedAtValue },
+        }), // 🌟 백엔드 DB에도 동일하게 동결/해제 적용
       }); // 🔥 교체됨
     } catch (error) {
       console.error("상태 변경 에러:", error);
@@ -374,15 +406,32 @@ function MainDashboard({
     }
   }, [brainDumpTimeLeft]);
 
+  // const getRealtimeProgress = (task: Task, currentTime: number) => {
+  //   const startMs = task.startedAt || task.lastStartedAt;
+  //   if (!startMs || !task.deadline || task.deadline === "D-Day")
+  //     return task.progress || 0;
+
+  //   const totalDuration = new Date(task.deadline).getTime() - startMs;
+  //   if (totalDuration <= 0) return 100;
+
+  //   const elapsed = currentTime - startMs;
+  //   return Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+  // };
+
   const getRealtimeProgress = (task: Task, currentTime: number) => {
     const startMs = task.startedAt || task.lastStartedAt;
     if (!startMs || !task.deadline || task.deadline === "D-Day")
       return task.progress || 0;
-
     const totalDuration = new Date(task.deadline).getTime() - startMs;
     if (totalDuration <= 0) return 100;
 
-    const elapsed = currentTime - startMs;
+    // 🌟 [핀셋 수술] 이 함수도 완료 상태('done')일 때는 현재 시간 대신 박제된 endedAt을 바라보도록 묶어줍니다.
+    const endPoint =
+      task.status === "done" && task.endedAt
+        ? new Date(task.endedAt).getTime()
+        : currentTime;
+    const elapsed = endPoint - startMs;
+
     return Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
   };
 
@@ -493,6 +542,71 @@ function MainDashboard({
   //   }
   // };
 
+  // 수정 전
+  // const toggleFocus = async (task: Task) => {
+  //   const currentTime = Date.now();
+  //   const isActive = String(activeTaskId) !== String(task.id);
+  //   const initialStart = task.startedAt || task.lastStartedAt || currentTime;
+  //   const finalProgress = isActive
+  //     ? task.progress
+  //     : Number(getRealtimeProgress(task, currentTime).toFixed(1));
+
+  //   setActiveTaskId(isActive ? task.id : null);
+
+  //   // 🌟 핵심 수술: 상태 업데이트와 동시에 배열 재정렬 수행
+  //   setTasks(prevTasks => {
+  //     // 1. 해당 태스크의 상태를 업데이트한 새로운 배열 생성
+  //     const updatedTasks = prevTasks.map(t =>
+  //       String(t.id) === String(task.id)
+  //         ? {
+  //             ...t,
+  //             isActive,
+  //             progress: finalProgress,
+  //             startedAt: initialStart,
+  //             lastStartedAt: isActive ? currentTime : null,
+  //             // isActive가 true(START 누름)면 자동으로 'in-progress' 탭으로 이동
+  //             status: isActive ? "in-progress" : t.status,
+  //           }
+  //         : t,
+  //     );
+
+  //     // 2. 만약 START를 누른 거라면 강제로 '진행 중' 탭으로 화면 전환
+  //     if (isActive) {
+  //       setActiveTab("in-progress");
+  //     }
+
+  //     // 3. 🌟 수정: START를 누른 항목만 즉시 배열 맨 앞으로 끌어올림
+  //     if (isActive) {
+  //       const targetIndex = updatedTasks.findIndex(
+  //         t => String(t.id) === String(task.id),
+  //       );
+  //       if (targetIndex > -1) {
+  //         const [targetTask] = updatedTasks.splice(targetIndex, 1);
+  //         updatedTasks.unshift(targetTask); // 해당 카드를 리스트 최상단으로 강제 이동
+  //       }
+  //     }
+
+  //     return updatedTasks;
+  //   });
+
+  //   const apiUrl = "https://project-a7app.vercel.app/api/tasks";
+  //   await fetch(apiUrl, {
+  //     method: "PUT",
+  //     headers: getHeaders(true),
+  //     body: JSON.stringify({
+  //       id: task.id,
+  //       updatedFields: {
+  //         isActive,
+  //         progress: finalProgress,
+  //         startedAt: initialStart,
+  //         lastStartedAt: isActive ? currentTime : null,
+  //         status: isActive ? "in-progress" : task.status,
+  //       },
+  //     }),
+  //   }); // 🔥 교체됨
+  // };
+
+  // 수정 후
   const toggleFocus = async (task: Task) => {
     const currentTime = Date.now();
     const isActive = String(activeTaskId) !== String(task.id);
@@ -500,13 +614,11 @@ function MainDashboard({
     const finalProgress = isActive
       ? task.progress
       : Number(getRealtimeProgress(task, currentTime).toFixed(1));
-
     setActiveTaskId(isActive ? task.id : null);
-
     // 🌟 핵심 수술: 상태 업데이트와 동시에 배열 재정렬 수행
-    setTasks(prevTasks => {
+    setTasks((prevTasks: any) => {
       // 1. 해당 태스크의 상태를 업데이트한 새로운 배열 생성
-      const updatedTasks = prevTasks.map(t =>
+      const updatedTasks = prevTasks.map((t: any) =>
         String(t.id) === String(task.id)
           ? {
               ...t,
@@ -514,31 +626,27 @@ function MainDashboard({
               progress: finalProgress,
               startedAt: initialStart,
               lastStartedAt: isActive ? currentTime : null,
-              // isActive가 true(START 누름)면 자동으로 'in-progress' 탭으로 이동
               status: isActive ? "in-progress" : t.status,
+              endedAt: isActive ? null : t.endedAt, // 🌟 START(isActive가 true)를 누르면 기존의 동결 자물쇠를 완전히 바숩니다.
             }
           : t,
       );
-
       // 2. 만약 START를 누른 거라면 강제로 '진행 중' 탭으로 화면 전환
       if (isActive) {
         setActiveTab("in-progress");
       }
-
       // 3. 🌟 수정: START를 누른 항목만 즉시 배열 맨 앞으로 끌어올림
       if (isActive) {
         const targetIndex = updatedTasks.findIndex(
-          t => String(t.id) === String(task.id),
+          (t: any) => String(t.id) === String(task.id),
         );
         if (targetIndex > -1) {
           const [targetTask] = updatedTasks.splice(targetIndex, 1);
-          updatedTasks.unshift(targetTask); // 해당 카드를 리스트 최상단으로 강제 이동
+          updatedTasks.unshift(targetTask);
         }
       }
-
       return updatedTasks;
     });
-
     const apiUrl = "https://project-a7app.vercel.app/api/tasks";
     await fetch(apiUrl, {
       method: "PUT",
@@ -551,6 +659,7 @@ function MainDashboard({
           startedAt: initialStart,
           lastStartedAt: isActive ? currentTime : null,
           status: isActive ? "in-progress" : task.status,
+          endedAt: isActive ? null : task.endedAt || null, // 🌟 DB 데이터도 다시 시작하면 동결을 즉시 해제합니다.
         },
       }),
     }); // 🔥 교체됨

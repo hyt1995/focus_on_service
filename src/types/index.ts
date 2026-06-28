@@ -13,6 +13,7 @@ export interface Task {
   isActive?: boolean;
   status?: string;
   order?: number;
+  endedAt?: string | null;
 }
 
 export interface Schedule {

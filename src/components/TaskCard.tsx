@@ -16,7 +16,7 @@ interface Props {
   onUpdateCard: (
     id: number | string,
     newTitle: string,
-    newDesc: string
+    newDesc: string,
   ) => void; // 🔥 카드 수정 함수
   onUpdateStatus: (id: number | string, newStatus: string) => void;
   dragItemRef: React.MutableRefObject<number | null>;
@@ -53,7 +53,7 @@ export default function TaskCard({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const handleStatusChange = async (
-    e: React.ChangeEvent<HTMLSelectElement>
+    e: React.ChangeEvent<HTMLSelectElement>,
   ) => {
     if (isUpdatingStatus) return; // 처리 중이면 튕겨냄
     setIsUpdatingStatus(true);
@@ -69,6 +69,10 @@ export default function TaskCard({
   let remainingStr = "-";
 
   // 🌟 1. DB 값이 문자열로 넘어와도 강제로 숫자로 바꿔서 계산 오류를 방지합니다.
+  // const rawStart = task.startedAt || task.lastStartedAt;
+  // const startMs = rawStart ? new Date(rawStart).getTime() : null;
+
+  // 🌟 1. DB 값이 문자열로 넘어와도 강제로 숫자로 바꿔서 계산 오류를 방지합니다.
   const rawStart = task.startedAt || task.lastStartedAt;
   const startMs = rawStart ? new Date(rawStart).getTime() : null;
 
@@ -77,14 +81,31 @@ export default function TaskCard({
       hour: "2-digit",
       minute: "2-digit",
     });
-    // if (task.isActive) {
-    const elapsedMs = Math.max(0, currentTime - startMs);
-    elapsedStr = formatHighEndTime(elapsedMs); // 🔥 모듈화된 함수 사용
 
+    // 🌟 [핵심 수술] 일정의 상태가 'done'(완료)인지 먼저 검사합니다.
+    const isDone = task.status === "done";
+
+    // 🌟 완료된 일정이면 박제된 종료 시간(endedAt)을 종착지로 쓰고, 진행 중이면 실시간 현재 시간(currentTime)을 사용합니다.
+    const endPointMs =
+      isDone && task.endedAt ? new Date(task.endedAt).getTime() : currentTime;
+
+    // if (task.isActive) {
+    // const elapsedMs = Math.max(0, currentTime - startMs);
+    // elapsedStr = formatHighEndTime(elapsedMs); // 🔥 모듈화된 함수 사용
+
+    const elapsedMs = Math.max(0, endPointMs - startMs);
+    elapsedStr = formatHighEndTime(elapsedMs); // 🔥 고정되거나 실시간인 시간이 안전하게 반영됨
+
+    // if (task.deadline && task.deadline !== "D-Day") {
+    //   // 🌟 3. 마감 시간도 안전하게 숫자로 변환해서 계산합니다.
+    //   const deadMs = new Date(task.deadline).getTime();
+    //   const remainingMs = Math.max(0, deadMs - currentTime);
+    //   remainingStr = formatHighEndTime(remainingMs);
     if (task.deadline && task.deadline !== "D-Day") {
       // 🌟 3. 마감 시간도 안전하게 숫자로 변환해서 계산합니다.
+      // 완료된 일정은 남은 마감 시간이 흐르지 않고 그 시점에 멈추도록 endPointMs를 대입합니다.
       const deadMs = new Date(task.deadline).getTime();
-      const remainingMs = Math.max(0, deadMs - currentTime);
+      const remainingMs = Math.max(0, deadMs - endPointMs);
       remainingStr = formatHighEndTime(remainingMs);
     }
     // }
