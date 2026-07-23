@@ -447,7 +447,7 @@ function MainDashboard({
       time: "10 min",
       deadline: deadline.replace("T", " "),
       progress: 0,
-      createdAt: new Date().toISOString().split("T")[0],
+      createdAt: new Date().toISOString(),
       status: "todo",
     };
 

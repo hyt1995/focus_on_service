@@ -17,14 +17,14 @@ export function usePremiumPayment(onUpgrade?: () => void) {
       // 1. IAP 모듈 지원 환경 검사
       if (!IAP) {
         alert(
-          "🚨 인앱 결제를 지원하지 않는 환경입니다.\n최신 버전의 토스 앱에서 실행해 주세요."
+          "🚨 인앱 결제를 지원하지 않는 환경입니다.\n최신 버전의 토스 앱에서 실행해 주세요.",
         );
         setIsLoading(false);
         return;
       }
 
       // 상품 고유 ID (콘솔에서 발급받은 sku)
-      const PREM_SKU = "ait.0000030288.c601ccb2.3ebb540299.7998823328";
+      const PREM_SKU = "ait.0000043168.52faf078.7ba7ea33cd.2659096458";
 
       // 2. 인앱 결제창 호출 및 주문 생성 (createOneTimePurchaseOrder)
       const cleanup = IAP.createOneTimePurchaseOrder({
@@ -42,7 +42,7 @@ export function usePremiumPayment(onUpgrade?: () => void) {
                   method: "POST",
                   body: JSON.stringify({ orderId: orderId }),
                   headers: { Authorization: `Bearer ${token}` },
-                }
+                },
               );
 
               // 🔥 추가: 서버에서 에러(400, 500 등)를 뱉으면 강제로 에러를 발생시킵니다.
@@ -67,7 +67,7 @@ export function usePremiumPayment(onUpgrade?: () => void) {
             console.log("결제 성공 내역:", event.data);
 
             alert(
-              `🎉 프리미엄 결제가 완료되었습니다!\n결제 번호: ${event.data.orderId}`
+              `🎉 프리미엄 결제가 완료되었습니다!\n결제 번호: ${event.data.orderId}`,
             );
 
             // 프리미엄 권한 활성화를 위해 화면 새로고침

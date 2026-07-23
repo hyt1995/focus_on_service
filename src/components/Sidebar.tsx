@@ -45,7 +45,7 @@ export default function Sidebar({
 
     if (isWorkingHour) {
       alert(
-        `지금은 집중하는 시간이에요. 🐳\n영수증은 업무 시간 외(${endStr} ~ 다음날 ${startStr})에만 확인 가능해요.`
+        `지금은 집중하는 시간이에요. 🐳\n영수증은 업무 시간 외(${endStr} ~ 다음날 ${startStr})에만 확인 가능해요.`,
       );
       return false; // 화면 이동 차단을 위한 false 반환
     }

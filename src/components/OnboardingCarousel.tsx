@@ -55,6 +55,14 @@ export default function OnboardingCarousel({
         "시작 버튼을 누른 순간부터 끝날 때까지 낭비된 시간의 영수증.\n진짜 내 시간 지출 내역을 눈으로 확인하고 무서움을 직면할 때입니다.",
       imageKey: "step4",
     },
+    {
+      // 🌟 5번 카드: 무료 버전의 한계와 유료 결제 유도 (강력한 손실 회피 자극)
+      title:
+        "기껏 세워둔 완벽한 계획들,\n앱을 끄는 순간 모두 허무하게 증발합니다.",
+      subtitle:
+        "체험판에서는 데이터가 저장되지 않아 매번 새로 입력해야 합니다.\n한 달 커피 두 잔 값(월 7,500원)으로, 스스로 ADHD라 의심하며 못했던 일들을 마침내 처리할 수 있게 당신의 발등에 확실한 불을 떨어뜨려 드립니다.",
+      imageKey: "step5",
+    },
   ];
 
   const handleNext = () => {
@@ -166,6 +174,13 @@ export default function OnboardingCarousel({
                     className="w-full h-full object-cover rounded-[22px]"
                   />
                 )}
+                {step.imageKey === "step5" && (
+                  <img
+                    src="/images/5.png"
+                    alt="시간 소멸"
+                    className="w-full h-full object-cover rounded-[22px]"
+                  />
+                )}
 
                 {index === 3 && (
                   <div className="absolute inset-0 bg-gradient-to-t from-red-950/10 to-transparent pointer-events-none animate-pulse" />
@@ -181,12 +196,12 @@ export default function OnboardingCarousel({
         <button
           onClick={handleNext}
           className={`w-full h-14 rounded-[16px] font-semibold text-base tracking-tight transition-all active:scale-[0.99] duration-200 flex items-center justify-center ${
-            currentStep === 3
+            currentStep === 4
               ? "bg-[#f04452] text-white hover:bg-[#dc3845]"
               : "bg-[#3182f6] text-white hover:bg-[#2272eb]"
           }`}
         >
-          {currentStep === 3 ? "내 시간 지키러 가기" : "다음"}
+          {currentStep === 4 ? "내 시간 지키러 가기" : "다음"}
         </button>
       </div>
     </div>

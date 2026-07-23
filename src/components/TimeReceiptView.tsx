@@ -77,8 +77,8 @@ export default function TimeReceiptView({
   const [bgSize, setBgSize] = useState({ w: 600, h: 1100 });
   const [paperSize, setPaperSize] = useState({ w: 300, h: 1160 });
   const [titlePos, setTitlePos] = useState({ t: 30, l: 200 });
-  const [logoSize, setLogoSize] = useState({ w: 260, h: 100 });
-  const [logoPos, setLogoPos] = useState({ t: 90, l: 166 });
+  const [logoSize, setLogoSize] = useState({ w: 260, h: 180 });
+  const [logoPos, setLogoPos] = useState({ t: 50, l: 50 });
   const [photoSize, setPhotoSize] = useState({ w: 275, h: 165 });
   const [photoPos, setPhotoPos] = useState({ t: 225, l: 297 });
   const [barcodeSize, setBarcodeSize] = useState({ w: 1500, h: 300 });
@@ -126,7 +126,7 @@ export default function TimeReceiptView({
     .filter(t => t.status === "in-progress")
     .map(t => {
       // 보여지는 시작 시간은 유저 말대로 createdAt 사용
-      const displayStartTime = formatTime(t.createdAt);
+      const displayStartTime = formatTime(t.startedAt);
 
       // 🔥 핵심: 실제 start를 누른 적이 없으면 내 맘대로 계산하지 않고 쿨하게 "--"
       if (!t.startedAt) {
@@ -179,7 +179,7 @@ export default function TimeReceiptView({
   const realDone: TaskItem[] = tasks
     .filter(t => t.status === "done")
     .map(t => {
-      const displayStartTime = formatTime(t.createdAt);
+      const displayStartTime = formatTime(t.startedAt);
       // 🔥 완료된 일정도 실제 start를 누른 적 없으면 무조건 "--"
       if (!t.startedAt) {
         return { name: t.title, start: displayStartTime, duration: "--" };
