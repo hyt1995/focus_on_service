@@ -34,16 +34,16 @@ export async function POST(req: Request) {
       if (!authorizationCode)
         return NextResponse.json(
           { error: "인가 코드가 없습니다." },
-          { status: 400 }
+          { status: 400 },
         );
 
       const certString = (process.env.TIME_DIVE_MTLS_PUBLIC || "").replace(
         /\\n/g,
-        "\n"
+        "\n",
       );
       const keyString = (process.env.TIME_DIVE_MTLS_PRIVATE || "").replace(
         /\\n/g,
-        "\n"
+        "\n",
       );
 
       const httpsAgent = new https.Agent({
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
           httpsAgent,
           // 🌟 시니어의 안전장치: JSON 명찰을 강제로 붙입니다!
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
       const accessToken = tokenRes.data.success.accessToken;
 
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       // (임시 확인용) 암호화된 데이터를 먼저 콘솔에 찍어봅니다.
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       // 🌟 3. 데이터베이스 저장용 고유 ID 추출 (CI가 null이므로 무조건 userKey 사용!)
       tossUserUID = userData.userKey.toString();
       console.log(
-        `🔓 복호화 성공! 환영합니다, ${tossUserName}님! (성별: ${tossUserGender})`
+        `🔓 복호화 성공! 환영합니다, ${tossUserName}님! (성별: ${tossUserGender})`,
       );
     }
 
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
         gender: tossUserGender,
         lastLoginAt: new Date().toISOString(),
       },
-      { merge: true }
+      { merge: true },
     );
 
     console.log(`💾 [DB 스위치 ON] 유저 저장 완료: ${tossUserName}`);
@@ -130,18 +130,22 @@ export async function POST(req: Request) {
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("30d")
+      // .setExpirationTime("30d")
       .sign(JWT_SECRET);
 
     return NextResponse.json({ success: true, token, userName: tossUserName });
   } catch (error: any) {
     console.log(
       "🚨 토스 로그인 상세 에러:",
-      JSON.stringify(error?.response?.data || error?.response || error, null, 2)
+      JSON.stringify(
+        error?.response?.data || error?.response || error,
+        null,
+        2,
+      ),
     );
     return NextResponse.json(
       { error: "로그인 처리 중 서버 에러가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
